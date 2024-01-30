@@ -1,0 +1,5 @@
+sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md
+grub,3,Free Software Foundation,grub,2.02,https://www.gnu.org/software/grub/
+grub.rh,2,Red Hat Enterprise Linux 8,grub2,@@VERSION_RHEL_RELEASE@@,mailto:secalert@redhat.com
+grub.rocky8,2,Rocky Linux 8,grub2,@@VERSION_RESF_RELEASE@@,mailto:security@rockylinux.org
+grub.ciq_rocky8,1,Rocky Linux 8 (CIQ build),grub2,@@VERSION_RELEASE@@,mailto:secureboot@ciq.com
