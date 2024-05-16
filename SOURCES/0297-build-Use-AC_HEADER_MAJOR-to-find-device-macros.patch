@@ -1,0 +1,106 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Mike Gilbert <floppym@gentoo.org>
+Date: Tue, 19 Apr 2016 14:27:22 -0400
+Subject: [PATCH] build: Use AC_HEADER_MAJOR to find device macros
+
+Depending on the OS/libc, device macros are defined in different
+headers. This change ensures we include the right one.
+
+sys/types.h - BSD
+sys/mkdev.h - Sun
+sys/sysmacros.h - glibc (Linux)
+
+glibc currently pulls sys/sysmacros.h into sys/types.h, but this may
+change in a future release.
+
+https://sourceware.org/ml/libc-alpha/2015-11/msg00253.html
+
+Upstream-commit-id: 7a5b301e3ad
+---
+ configure.ac                         | 3 ++-
+ grub-core/osdep/devmapper/getroot.c  | 6 ++++++
+ grub-core/osdep/devmapper/hostdisk.c | 5 +++++
+ grub-core/osdep/linux/getroot.c      | 6 ++++++
+ grub-core/osdep/unix/getroot.c       | 5 +++++
+ 5 files changed, 24 insertions(+), 1 deletion(-)
+
+diff --git a/configure.ac b/configure.ac
+index 8b10a93cb56..936cfa0ce5a 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -405,7 +405,8 @@ fi
+ 
+ # Check for functions and headers.
+ AC_CHECK_FUNCS(posix_memalign memalign getextmntent)
+-AC_CHECK_HEADERS(sys/param.h sys/mount.h sys/mnttab.h sys/mkdev.h limits.h)
++AC_CHECK_HEADERS(sys/param.h sys/mount.h sys/mnttab.h limits.h)
++AC_HEADER_MAJOR
+ 
+ AC_CHECK_MEMBERS([struct statfs.f_fstypename],,,[$ac_includes_default
+ #include <sys/param.h>
+diff --git a/grub-core/osdep/devmapper/getroot.c b/grub-core/osdep/devmapper/getroot.c
+index de32102322b..227fa5058b6 100644
+--- a/grub-core/osdep/devmapper/getroot.c
++++ b/grub-core/osdep/devmapper/getroot.c
+@@ -40,6 +40,12 @@
+ #include <limits.h>
+ #endif
+ 
++#if defined(MAJOR_IN_MKDEV)
++#include <sys/mkdev.h>
++#elif defined(MAJOR_IN_SYSMACROS)
++#include <sys/sysmacros.h>
++#endif
++
+ #include <libdevmapper.h>
+ 
+ #include <grub/types.h>
+diff --git a/grub-core/osdep/devmapper/hostdisk.c b/grub-core/osdep/devmapper/hostdisk.c
+index 19c1101fdac..a697bcb4d8d 100644
+--- a/grub-core/osdep/devmapper/hostdisk.c
++++ b/grub-core/osdep/devmapper/hostdisk.c
+@@ -24,6 +24,11 @@
+ #include <errno.h>
+ #include <limits.h>
+ 
++#if defined(MAJOR_IN_MKDEV)
++#include <sys/mkdev.h>
++#elif defined(MAJOR_IN_SYSMACROS)
++#include <sys/sysmacros.h>
++#endif
+ 
+ #ifdef HAVE_DEVICE_MAPPER
+ # include <libdevmapper.h>
+diff --git a/grub-core/osdep/linux/getroot.c b/grub-core/osdep/linux/getroot.c
+index 5987d078a2f..6a7784a4ea2 100644
+--- a/grub-core/osdep/linux/getroot.c
++++ b/grub-core/osdep/linux/getroot.c
+@@ -35,6 +35,12 @@
+ #include <limits.h>
+ #endif
+ 
++#if defined(MAJOR_IN_MKDEV)
++#include <sys/mkdev.h>
++#elif defined(MAJOR_IN_SYSMACROS)
++#include <sys/sysmacros.h>
++#endif
++
+ #include <grub/types.h>
+ #include <sys/ioctl.h>         /* ioctl */
+ #include <sys/mount.h>
+diff --git a/grub-core/osdep/unix/getroot.c b/grub-core/osdep/unix/getroot.c
+index e3887cbea68..026dd79b2d6 100644
+--- a/grub-core/osdep/unix/getroot.c
++++ b/grub-core/osdep/unix/getroot.c
+@@ -57,6 +57,11 @@
+ #endif
+ 
+ #include <sys/types.h>
++#if defined(MAJOR_IN_MKDEV)
++#include <sys/mkdev.h>
++#elif defined(MAJOR_IN_SYSMACROS)
++#include <sys/sysmacros.h>
++#endif
+ 
+ #if defined(HAVE_LIBZFS) && defined(HAVE_LIBNVPAIR)
+ # include <grub/util/libzfs.h>

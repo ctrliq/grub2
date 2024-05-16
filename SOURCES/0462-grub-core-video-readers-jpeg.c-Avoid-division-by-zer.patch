@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Vladimir Serbinenko <phcoder@gmail.com>
+Date: Tue, 20 Jan 2015 19:35:49 +0100
+Subject: [PATCH] 	* grub-core/video/readers/jpeg.c: Avoid division by
+ zero.
+
+(cherry picked from commit 4816dcac19a05a1209822015d88903faef3d6f44)
+[rharwood: drop ChangeLog]
+Signed-off-by: Robbie Harwood <rharwood@redhat.com>
+---
+ grub-core/video/readers/jpeg.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/grub-core/video/readers/jpeg.c b/grub-core/video/readers/jpeg.c
+index a6742a96b1..84cf5ceec9 100644
+--- a/grub-core/video/readers/jpeg.c
++++ b/grub-core/video/readers/jpeg.c
+@@ -323,7 +323,7 @@ grub_jpeg_decode_sof (struct grub_jpeg_data *data)
+ 	{
+ 	  data->vs = ss & 0xF;	/* Vertical sampling.  */
+ 	  data->hs = ss >> 4;	/* Horizontal sampling.  */
+-	  if ((data->vs > 2) || (data->hs > 2))
++	  if ((data->vs > 2) || (data->hs > 2) || (data->vs == 0) || (data->hs == 0))
+ 	    return grub_error (GRUB_ERR_BAD_FILE_TYPE,
+ 			       "jpeg: sampling method not supported");
+ 	}

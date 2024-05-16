@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Chris Coulson <chris.coulson@canonical.com>
+Date: Mon, 2 May 2022 14:39:31 +0200
+Subject: [PATCH] loader/i386/efi/linux: Avoid a use-after-free in the linuxefi
+ loader
+
+In some error paths in grub_cmd_linux, the pointer to lh may be
+dereferenced after the buffer it points to has been freed. There aren't
+any security implications from this because nothing else uses the
+allocator after the buffer is freed and before the pointer is
+dereferenced, but fix it anyway.
+
+Signed-off-by: Chris Coulson <chris.coulson@canonical.com>
+(cherry picked from commit 8224f5a71af94bec8697de17e7e579792db9f9e2)
+(cherry picked from commit 4744b62e20d07674017213ac54d7442d679f9d1a)
+(cherry picked from commit 329633cb060957c3d2aca677ac733f07b213a63f)
+(cherry picked from commit c74456404adfb1ed0043c1de0b475e0d84c5c480)
+---
+ grub-core/loader/i386/efi/linux.c | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/grub-core/loader/i386/efi/linux.c b/grub-core/loader/i386/efi/linux.c
+index c146bc58e3..bafee49852 100644
+--- a/grub-core/loader/i386/efi/linux.c
++++ b/grub-core/loader/i386/efi/linux.c
+@@ -343,9 +343,6 @@ grub_cmd_linux (grub_command_t cmd __attribute__ ((unused)),
+   if (file)
+     grub_file_close (file);
+ 
+-  if (kernel)
+-    grub_free (kernel);
+-
+   if (grub_errno != GRUB_ERR_NONE)
+     {
+       grub_dl_unref (my_mod);
+@@ -365,6 +362,8 @@ grub_cmd_linux (grub_command_t cmd __attribute__ ((unused)),
+     grub_efi_free_pages ((grub_efi_physical_address_t)(grub_addr_t)params,
+ 			 BYTES_TO_PAGES(16384));
+ 
++  grub_free (kernel);
++
+   return grub_errno;
+ }
+ 

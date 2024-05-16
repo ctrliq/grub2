@@ -1,0 +1,23 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nicolas Frayer <nfrayer@redhat.com>
+Date: Wed, 31 Jan 2024 15:36:09 +0100
+Subject: [PATCH] safemath: add grub_cast for gcc < 5.1
+
+Signed-off-by: Nicolas Frayer <nfrayer@redhat.com>
+---
+ include/grub/safemath.h | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/include/grub/safemath.h b/include/grub/safemath.h
+index 30800ad6a141..f7392469739f 100644
+--- a/include/grub/safemath.h
++++ b/include/grub/safemath.h
+@@ -151,6 +151,8 @@
+ 			__signed_mul_overflow(a, b, d),		\
+ 			__unsigned_mul_overflow(a, b, d))
+ 
++#define grub_cast(a, res)	grub_add ((a), 0, (res))
++
+ #endif
+ 
+ #endif /* GRUB_SAFEMATH_H */

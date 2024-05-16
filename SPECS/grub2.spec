@@ -1,88 +1,67 @@
 %undefine _hardened_build
 
-%global tarversion 2.02
+%global tarversion 2.02~beta2
 %undefine _missing_build_ids_terminate_build
-%global _configure_gnuconfig_hack 0
 
-Name:                 grub2
-Epoch:                1
-Version:              2.02
-Release:              150%{?dist}.ciq.0.1
-Summary:              Bootloader with support for Linux, Multiboot and more
-Group:                System Environment/Base
-License:              GPLv3+
-URL:                  http://www.gnu.org/software/grub/
-Obsoletes:            grub < 1:0.98
-Source0:              ftp://alpha.gnu.org/gnu/grub/grub-%{tarversion}.tar.xz
+Name:           grub2
+Epoch:          1
+Version:        2.02
+Release:        0.87%{?dist}%{?buildid}.14
+Summary:        Bootloader with support for Linux, Multiboot and more
+Group:          System Environment/Base
+License:        GPLv3+
+URL:            http://www.gnu.org/software/grub/
+Source0:        ftp://alpha.gnu.org/gnu/grub/grub-%{tarversion}.tar.xz
 #Source0:	ftp://ftp.gnu.org/gnu/grub/grub-%%{tarversion}.tar.xz
-Source1:              grub.macros
-Source2:              grub.patches
-Source3:              release-to-master.patch
-Source4:              http://unifoundry.com/unifont-5.1.20080820.pcf.gz
-Source5:              theme.tar.bz2
-Source6:              gitignore
-Source8:              strtoull_test.c
-Source9:              20-grub.install
-Source12:             99-grub-mkconfig.install
-#Source13:	redhatsecurebootca3.cer
-#Source14:	rockybootsigningcert.cer
-#Source15:	redhatsecurebootca5.cer
-#Source16:	rockybootsigningcert.cer
-#Source17:	redhatsecureboot601.cer
-#Source18:	redhatsecureboot701.cer
-Source19:             sbat.csv.in
-Source1100: ciq.macros
-BuildRequires:        system-sb-certs
-
-
+Source1:	grub.macros
+Source2:	grub.patches
+Source3:	http://unifoundry.com/unifont-5.1.20080820.pcf.gz
+Source4:	gitignore
+Source5:	redhatsecurebootca3.cer
+Source6:	redhatsecureboot301.cer
+Source7:	redhatsecurebootca5.cer
+Source8:	redhatsecureboot502.cer
+Source9:	sbat.csv.in
 
 %include %{SOURCE1}
-
-%if 0%{with_efi_arch}
-%define old_sb_ca	%{_datadir}/pki/sb-certs/secureboot-ca-%{_arch}.cer
-%define old_sb_cer	%{_datadir}/pki/sb-certs/secureboot-grub2-%{_arch}.cer
-%define old_sb_key	rockybootsigningcert
-%define sb_ca		%{_datadir}/pki/sb-certs/secureboot-ca-%{_arch}.cer
-%define sb_cer		%{_datadir}/pki/sb-certs/secureboot-grub2-%{_arch}.cer
-%define sb_key		rockybootsigningcert
-%endif
-
-%ifarch ppc64le
-%define old_sb_cer	%{_datadir}/pki/sb-certs/secureboot-grub2-%{_arch}.cer
-%define sb_cer		%{_datadir}/pki/sb-certs/secureboot-grub2-%{_arch}.cer
-%define sb_key		rockybootsigningcert
-%endif
 
 # generate with do-rebase
 %include %{SOURCE2}
 
-BuildRequires:        gcc efi-srpm-macros
-BuildRequires:        flex bison binutils python3-devel
-BuildRequires:        ncurses-devel xz-devel bzip2-devel
-BuildRequires:        freetype-devel libusb-devel
-BuildRequires:        rpm-devel
-BuildRequires:        rpm-devel rpm-libs
-BuildRequires:        autoconf automake autogen device-mapper-devel
-BuildRequires:        freetype-devel gettext-devel git
-BuildRequires:        texinfo
-BuildRequires:        dejavu-sans-fonts
-BuildRequires:        help2man
-# For %%_userunitdir macro
-BuildRequires:        systemd
+BuildRequires:  flex bison binutils python
+BuildRequires:  ncurses-devel xz-devel bzip2-devel
+BuildRequires:  freetype-devel libusb-devel
+BuildRequires:	rpm-devel rpm-libs
+%ifarch %{sparc} aarch64 ppc64le
+# sparc builds need 64 bit glibc-devel - also for 32 bit userland
+BuildRequires:  /usr/lib64/crt1.o glibc-static glibc-devel
+%else
+%ifarch x86_64
+BuildRequires:  /usr/lib64/crt1.o glibc-static(x86-64) glibc-devel(x86-64)
+%else
+# ppc64 builds need the ppc crt1.o
+BuildRequires:  /usr/lib/crt1.o glibc-static glibc-devel
+%endif
+%endif
+BuildRequires:  autoconf automake autogen device-mapper-devel
+BuildRequires:	freetype-devel gettext-devel git
+BuildRequires:	texinfo
+BuildRequires:	dejavu-sans-fonts
+BuildRequires:	help2man
 %ifarch %{efi_arch}
-BuildRequires:        pesign >= 0.99-8
+BuildRequires:	pesign >= 0.99-8
 %endif
 %if %{?_with_ccache: 1}%{?!_with_ccache: 0}
-BuildRequires:        ccache
+BuildRequires:  ccache
 %endif
 
-ExcludeArch:          s390 s390x %{arm}
-Obsoletes:            %{name} <= %{evr}
+ExcludeArch:	s390 s390x %{arm} %{?ix86}
+Obsoletes:	%{name} <= %{flagday}
 
 %if 0%{with_legacy_arch}
-Requires:             %{name}-%{legacy_package_arch} = %{evr}
+Requires:	%{name}-%{legacy_package_arch} = %{evr}
 %else
-Requires:             %{name}-%{package_arch} = %{evr}
+Requires:	%{name}-%{package_arch} = %{evr}
 %endif
 
 %global desc \
@@ -95,126 +74,95 @@ hardware devices.\
 %description
 %{desc}
 
+%ifarch x86_64
 %package common
-Summary:              grub2 common layout
-Group:                System Environment/Base
-BuildArch:            noarch
-Conflicts:            grubby < 8.40-13
+Summary:	grub2 common layout
+Group:		System Environment/Base
+BuildArch:	noarch
 
 %description common
 This package provides some directories which are required by various grub2
 subpackages.
+%endif
 
 %package tools
-Summary:              Support tools for GRUB.
-Group:                System Environment/Base
-Obsoletes:            %{name}-tools < %{evr}
-Requires:             %{name}-common = %{epoch}:%{version}-%{release}
-Requires:             gettext os-prober which file
-Requires(pre):	dracut
-Requires(post):	dracut
+Summary:	Support tools for GRUB.
+Group:		System Environment/Base
+Obsoletes:	%{name}-tools <= %{flagday}
+%ifarch x86_64
+Obsoletes:	%{name}-tools-efi <= %{flagday}
+Provides:	%{name}-tools-efi = %{evr}
+%endif
+Requires:	%{name}-tools-minimal = %{evr}
+Requires:	%{name}-common = %{evr}
+Requires:	gettext os-prober which file
+Requires(pre):  dracut
+Requires(post): dracut
 
 %description tools
 %{desc}
 This subpackage provides tools for support of all platforms.
 
-%ifarch x86_64
-%package tools-efi
-Summary:              Support tools for GRUB.
-Group:                System Environment/Base
-Requires:             gettext os-prober which file
-Requires:             %{name}-common = %{epoch}:%{version}-%{release}
-Obsoletes:            %{name}-tools < %{evr}
-
-%description tools-efi
-%{desc}
-This subpackage provides tools for support of EFI platforms.
-%endif
-
 %package tools-minimal
-Summary:              Support tools for GRUB.
-Group:                System Environment/Base
-Requires:             gettext
-Requires:             %{name}-common = %{epoch}:%{version}-%{release}
-Obsoletes:            %{name}-tools < %{evr}
+Summary:	Support tools for GRUB.
+Group:		System Environment/Base
+Requires:	gettext
+Requires:	%{name}-common = %{evr}
+Obsoletes:	%{name}-tools <= %{flagday}
 
 %description tools-minimal
 %{desc}
 This subpackage provides tools for support of all platforms.
 
 %package tools-extra
-Summary:              Support tools for GRUB.
-Group:                System Environment/Base
-Requires:             gettext os-prober which file
-Requires:             %{name}-tools-minimal = %{epoch}:%{version}-%{release}
-Requires:             %{name}-common = %{epoch}:%{version}-%{release}
-Obsoletes:            %{name}-tools < %{evr}
+Summary:	Support tools for GRUB.
+Group:		System Environment/Base
+Requires:	gettext os-prober which file
+Requires:	%{name}-tools-minimal = %{epoch}:%{version}-%{release}
+Requires:	%{name}-common = %{epoch}:%{version}-%{release}
+Requires:	%{name}-tools = %{evr}
+Obsoletes:	%{name}-tools <= %{flagday}
 
 %description tools-extra
 %{desc}
 This subpackage provides tools for support of all platforms.
 
 %if 0%{with_efi_arch}
-%{expand:%define_efi_variant %%{package_arch} -o}
+%define_efi_variant %{package_arch} -p
 %endif
 %if 0%{with_alt_efi_arch}
-%{expand:%define_efi_variant %%{alt_package_arch}}
+%define_efi_variant %{alt_package_arch}
 %endif
 %if 0%{with_legacy_arch}
-%{expand:%define_legacy_variant %%{legacy_package_arch}}
+%define_legacy_variant %{legacy_package_arch}
 %endif
 
-%prep 
-%global upstreamDist .el8_8
- 
-#Define RHEL release (stripped out ciq/rocky dist info) and Rocky release (stripped out CIQ info) respectively.  Needed for SBAT entries for RHEL and RESF: 
-%global sbatrhelrelease  %(echo '%{release}' | sed 's,%{dist},%{upstreamDist},' | sed 's,\.rocky\..*$,,' | sed 's,\.ciq\..*$,,') 
-%global sbatresfrelease  %(echo '%{release}' | sed 's,%{dist},%{upstreamDist},' | sed 's,\.ciq\.,\.rocky\.,')
-
+%prep
+%setup -T -c -n grub-%{tarversion}
 %do_common_setup
 %if 0%{with_efi_arch}
-mkdir grub-%{grubefiarch}-%{tarversion}
-grep -A100000 '# stuff "make" creates' .gitignore > grub-%{grubefiarch}-%{tarversion}/.gitignore
-cp %{SOURCE4} grub-%{grubefiarch}-%{tarversion}/unifont.pcf.gz
-sed -e "s,@@VERSION@@,%{version},g" -e "s,@@VERSION_RELEASE@@,%{version}-%{release},g" -e "s,@@VERSION_RHEL_RELEASE@@,%{version}-%{sbatrhelrelease},g" -e "s,@@VERSION_RESF_RELEASE@@,%{version}-%{sbatresfrelease},g" \
-    -e '/,Red Hat,/ s,\.rocky\.[0-9]\.[0-9],,g' %{SOURCE19} > grub-%{grubefiarch}-%{tarversion}/sbat.csv
-git add grub-%{grubefiarch}-%{tarversion}
+%do_setup %{grubefiarch}
+sed -e "s,@@VERSION@@,%{evr},g" %{SOURCE9} \
+	> grub-%{grubefiarch}-%{tarversion}/sbat.csv
 %endif
 %if 0%{with_alt_efi_arch}
-mkdir grub-%{grubaltefiarch}-%{tarversion}
-grep -A100000 '# stuff "make" creates' .gitignore > grub-%{grubaltefiarch}-%{tarversion}/.gitignore
-cp %{SOURCE4} grub-%{grubaltefiarch}-%{tarversion}/unifont.pcf.gz
-git add grub-%{grubaltefiarch}-%{tarversion}
+%do_setup %{grubaltefiarch}
 %endif
-%if 0%{with_legacy_arch}
-mkdir grub-%{grublegacyarch}-%{tarversion}
-grep -A100000 '# stuff "make" creates' .gitignore > grub-%{grublegacyarch}-%{tarversion}/.gitignore
-cp %{SOURCE4} grub-%{grublegacyarch}-%{tarversion}/unifont.pcf.gz
-git add grub-%{grublegacyarch}-%{tarversion}
+%if 0%{with_legacy_arch}%{with_legacy_utils}
+%do_setup %{grublegacyarch}
 %endif
-git commit -m "After making subdirs"
 
 %build
 %if 0%{with_efi_arch}
-%{expand:%do_primary_efi_build %%{grubefiarch} %%{grubefiname} %%{grubeficdname} %%{_target_platform} %%{efi_target_cflags} %%{efi_host_cflags} %{sb_ca} %{sb_cer} %{sb_key}}
+%do_primary_efi_build %{grubefiarch} %{grubefiname} %{grubeficdname} %{_target_platform} "'%{efi_cflags}'" %{SOURCE5} %{SOURCE6} redhatsecureboot301 %{SOURCE7} %{SOURCE8} redhatsecureboot502
 %endif
 %if 0%{with_alt_efi_arch}
-%{expand:%do_alt_efi_build %%{grubaltefiarch} %%{grubaltefiname} %%{grubalteficdname} %%{_alt_target_platform} %%{alt_efi_target_cflags} %%{alt_efi_host_cflags} %{sb_ca} %{sb_cer} %{sb_key}}
+%do_alt_efi_build %{grubaltefiarch} %{grubaltefiname} %{grubalteficdname} %{_alt_target_platform} "'%{alt_efi_cflags}'" %{SOURCE5} %{SOURCE6} redhatsecureboot301 %{SOURCE7} %{SOURCE8} redhatsecureboot502
 %endif
-%if 0%{with_legacy_arch}
-%{expand:%do_legacy_build %%{grublegacyarch}}
+%if 0%{with_legacy_arch}%{with_legacy_utils}
+%do_legacy_build %{grublegacyarch}
 %endif
-%ifarch ppc64le
-%{expand:%do_ieee1275_build_images %%{grublegacyarch} %{grubelfname} %{old_sb_cer} %{sb_cer} %{sb_key}}
-%endif
-makeinfo --info --no-split -I docs -o docs/grub-dev.info \
-	docs/grub-dev.texi
-makeinfo --info --no-split -I docs -o docs/grub.info \
-	docs/grub.texi
-makeinfo --html --no-split -I docs -o docs/grub-dev.html \
-	docs/grub-dev.texi
-makeinfo --html --no-split -I docs -o docs/grub.html \
-	docs/grub.texi
+%do_common_build
 
 %install
 set -e
@@ -222,44 +170,30 @@ rm -fr $RPM_BUILD_ROOT
 
 %do_common_install
 %if 0%{with_efi_arch}
-%{expand:%do_efi_install %%{grubefiarch} %%{grubefiname} %%{grubeficdname}}
+%do_efi_install %{grubefiarch} %{grubefiname} %{grubeficdname}
 %endif
 %if 0%{with_alt_efi_arch}
-%{expand:%do_alt_efi_install %%{grubaltefiarch} %%{grubaltefiname} %%{grubalteficdname}}
+%do_alt_efi_install %{grubaltefiarch} %{grubaltefiname} %{grubalteficdname}
 %endif
-%if 0%{with_legacy_arch}
-%{expand:%do_legacy_install %%{grublegacyarch} %%{alt_grub_target_name} 0%{with_efi_arch}}
+%if 0%{with_legacy_arch}%{with_legacy_utils}
+%do_legacy_install %{grublegacyarch} %{alt_grub_target_name}
 %endif
-
+${RPM_BUILD_ROOT}/%{_bindir}/%{name}-editenv ${RPM_BUILD_ROOT}/boot/efi/EFI/%{efidir}/grubenv create
 rm -f $RPM_BUILD_ROOT%{_infodir}/dir
-ln -s %{name}-set-password ${RPM_BUILD_ROOT}/%{_sbindir}/%{name}-setpassword
-echo '.so man8/%{name}-set-password.8' > ${RPM_BUILD_ROOT}/%{_datadir}/man/man8/%{name}-setpassword.8
-%ifnarch x86_64
-rm -vf ${RPM_BUILD_ROOT}/%{_bindir}/%{name}-render-label
-rm -vf ${RPM_BUILD_ROOT}/%{_sbindir}/%{name}-bios-setup
-rm -vf ${RPM_BUILD_ROOT}/%{_sbindir}/%{name}-macbless
-%endif
 
 %find_lang grub
 
-# Install kernel-install scripts
-install -d -m 0755 %{buildroot}%{_prefix}/lib/kernel/install.d/
-install -D -m 0755 -t %{buildroot}%{_prefix}/lib/kernel/install.d/ %{SOURCE9}
-install -D -m 0755 -t %{buildroot}%{_prefix}/lib/kernel/install.d/ %{SOURCE12}
-install -d -m 0755 %{buildroot}%{_sysconfdir}/kernel/install.d/
-install -m 0644 /dev/null %{buildroot}%{_sysconfdir}/kernel/install.d/20-grubby.install
-install -m 0644 /dev/null %{buildroot}%{_sysconfdir}/kernel/install.d/90-loaderentry.install
-# Install systemd user service to set the boot_success flag
-install -D -m 0755 -t %{buildroot}%{_userunitdir} \
-	docs/grub-boot-success.{timer,service}
-install -d -m 0755 %{buildroot}%{_userunitdir}/timers.target.wants
-ln -s ../grub-boot-success.timer \
-	%{buildroot}%{_userunitdir}/timers.target.wants
-# Install systemd system-update unit to set boot_indeterminate for offline-upd
-install -D -m 0755 -t %{buildroot}%{_unitdir} docs/grub-boot-indeterminate.service
-install -d -m 0755 %{buildroot}%{_unitdir}/system-update.target.wants
-ln -s ../grub-boot-indeterminate.service \
-	%{buildroot}%{_unitdir}/system-update.target.wants
+# Make selinux happy with exec stack binaries.
+mkdir ${RPM_BUILD_ROOT}%{_sysconfdir}/prelink.conf.d/
+cat << EOF > ${RPM_BUILD_ROOT}%{_sysconfdir}/prelink.conf.d/grub2.conf
+# these have execstack, and break under selinux
+-b /usr/bin/grub2-script-check
+-b /usr/bin/grub2-mkrelpath
+-b /usr/bin/grub2-fstest
+-b /usr/sbin/grub2-bios-setup
+-b /usr/sbin/grub2-probe
+-b /usr/sbin/grub2-sparc64-setup
+EOF
 
 # Don't run debuginfo on all the grub modules and whatnot; it just
 # rejects them, complains, and slows down extraction.
@@ -280,26 +214,27 @@ ln -s ../grub-boot-indeterminate.service \
 	mv %{finddebugroot}/usr/sbin %{buildroot}/usr/sbin		\
 	%{nil}
 
-%undefine buildsubdir
+%clean    
+rm -rf $RPM_BUILD_ROOT
 
 %pre tools
 if [ -f /boot/grub2/user.cfg ]; then
     if grep -q '^GRUB_PASSWORD=' /boot/grub2/user.cfg ; then
 	sed -i 's/^GRUB_PASSWORD=/GRUB2_PASSWORD=/' /boot/grub2/user.cfg
     fi
-elif [ -f %{efi_esp_dir}/user.cfg ]; then
-    if grep -q '^GRUB_PASSWORD=' %{efi_esp_dir}/user.cfg ; then
+elif [ -f /boot/efi/EFI/%{efidir}/user.cfg ]; then
+    if grep -q '^GRUB_PASSWORD=' /boot/efi/EFI/%{efidir}/user.cfg ; then
 	sed -i 's/^GRUB_PASSWORD=/GRUB2_PASSWORD=/' \
-	    %{efi_esp_dir}/user.cfg
+	    /boot/efi/EFI/%{efidir}/user.cfg
     fi
 elif [ -f /etc/grub.d/01_users ] && \
 	grep -q '^password_pbkdf2 root' /etc/grub.d/01_users ; then
-    if [ -f %{efi_esp_dir}/grub.cfg ]; then
+    if [ -f /boot/efi/EFI/%{efidir}/grub.cfg ]; then
 	# on EFI we don't get permissions on the file, but
 	# the directory is protected.
 	grep '^password_pbkdf2 root' /etc/grub.d/01_users | \
 		sed 's/^password_pbkdf2 root \(.*\)$/GRUB2_PASSWORD=\1/' \
-	    > %{efi_esp_dir}/user.cfg
+	    > /boot/efi/EFI/%{efidir}/user.cfg
     fi
     if [ -f /boot/grub2/grub.cfg ]; then
 	install -m 0600 /dev/null /boot/grub2/user.cfg
@@ -309,15 +244,18 @@ elif [ -f /etc/grub.d/01_users ] && \
 	    > /boot/grub2/user.cfg
     fi
 fi
+if [ -f /boot/grub2/grubenv ] && ! [ -f /boot/efi/EFI/%{efidir}/grubenv ] ; then
+	if [ -e /boot/efi/EFI/%{efidir}/grubenv ] ; then
+		rm /boot/efi/EFI/%{efidir}/grubenv
+		mv /boot/grub2/grubenv /boot/efi/EFI/%{efidir}/grubenv
+		ln -sf ../efi/EFI/%{efidir}/grubenv /boot/grub2/grubenv
+	fi
+fi
 
 %post tools
 if [ "$1" = 1 ]; then
 	/sbin/install-info --info-dir=%{_infodir} %{_infodir}/%{name}.info.gz || :
 	/sbin/install-info --info-dir=%{_infodir} %{_infodir}/%{name}-dev.info.gz || :
-fi
-
-if [ "$1" = 2 ]; then
-	/sbin/grub2-switch-to-blscfg --backup-suffix=.rpmsave &>/dev/null || :
 fi
 
 %triggerun -- grub2 < 1:1.99-4
@@ -351,16 +289,25 @@ if [ "$1" = 0 ]; then
 	/sbin/install-info --delete --info-dir=%{_infodir} %{_infodir}/%{name}-dev.info.gz || :
 fi
 
+%files
+%ifnarch x86_64 %{ix86}
+%exclude %{_bindir}/%{name}-render-label
+%exclude %{_sbindir}/%{name}-bios-setup
+%exclude %{_sbindir}/%{name}-macbless
+%endif
+%ifnarch x86_64
+%exclude /boot/grub2/grubenv
+%exclude /boot/efi/EFI/*/grubenv
+%exclude %{_datadir}/locale
+%endif
+
+%ifarch x86_64
 %files common -f grub.lang
 %dir %{_libdir}/grub/
 %dir %{_datarootdir}/grub/
 %dir %{_datarootdir}/grub/themes/
 %exclude %{_datarootdir}/grub/themes/*
 %attr(0700,root,root) %dir %{_sysconfdir}/grub.d
-%{_prefix}/lib/kernel/install.d/20-grub.install
-%{_sysconfdir}/kernel/install.d/20-grubby.install
-%{_sysconfdir}/kernel/install.d/90-loaderentry.install
-%{_prefix}/lib/kernel/install.d/99-grub-mkconfig.install
 %dir %{_datarootdir}/grub
 %exclude %{_datarootdir}/grub/*
 %dir /boot/%{name}
@@ -369,69 +316,52 @@ fi
 %exclude /boot/%{name}/themes/system/*
 %attr(0700,root,root) %dir /boot/grub2
 %exclude /boot/grub2/*
-%dir %attr(0700,root,root) %{efi_esp_dir}
-%exclude %{efi_esp_dir}/*
-%license COPYING
-%ghost %config(noreplace) %verify(not size mode md5 mtime) /boot/grub2/grubenv
-%doc INSTALL
-%doc NEWS
-%doc README
-%doc THANKS
-%doc TODO
-%doc docs/grub.html
-%doc docs/grub-dev.html
-%doc docs/font_char_metrics.png
+%dir %verify(not mtime) %attr(0700,root,root)/boot/efi/EFI/%{efidir}
+%exclude /boot/efi/EFI/%{efidir}/*
+%license %{common_srcdir}/COPYING
+%ghost %config(noreplace) /boot/grub2/grubenv
+%doc %{common_srcdir}/INSTALL
+%doc %{common_srcdir}/NEWS
+%doc %{common_srcdir}/README
+%doc %{common_srcdir}/THANKS
+%doc %{common_srcdir}/TODO
+%doc %{common_srcdir}/docs/grub.html
+%doc %{common_srcdir}/docs/grub-dev.html
+%doc %{common_srcdir}/docs/font_char_metrics.png
+%endif
 
 %files tools-minimal
+%defattr(-,root,root,-)
+%{_sysconfdir}/prelink.conf.d/grub2.conf
 %{_sbindir}/%{name}-get-kernel-settings
-%attr(4755, root, root) %{_sbindir}/%{name}-set-bootflag
 %{_sbindir}/%{name}-set-default
-%{_sbindir}/%{name}-set*password
+%{_sbindir}/%{name}-setpassword
 %{_bindir}/%{name}-editenv
 %{_bindir}/%{name}-mkpasswd-pbkdf2
 
 %{_datadir}/man/man3/%{name}-get-kernel-settings*
 %{_datadir}/man/man8/%{name}-set-default*
-%{_datadir}/man/man8/%{name}-set*password*
+%{_datadir}/man/man8/%{name}-setpassword*
 %{_datadir}/man/man1/%{name}-editenv*
 %{_datadir}/man/man1/%{name}-mkpasswd-*
 
-%ifarch x86_64
-%files tools-efi
-%{_sbindir}/%{name}-macbless
-%{_bindir}/%{name}-render-label
-%{_datadir}/man/man8/%{name}-macbless*
-%{_datadir}/man/man1/%{name}-render-label*
-%endif
-
 %files tools
+%defattr(-,root,root,-)
 %attr(0644,root,root) %ghost %config(noreplace) %{_sysconfdir}/default/grub
 %config %{_sysconfdir}/grub.d/??_*
-%ifarch ppc64 ppc64le
-%exclude %{_sysconfdir}/grub.d/10_linux
-%else
-%exclude %{_sysconfdir}/grub.d/10_linux_bls
-%endif
 %{_sysconfdir}/grub.d/README
-%{_userunitdir}/grub-boot-success.timer
-%{_userunitdir}/grub-boot-success.service
-%{_userunitdir}/timers.target.wants
-%{_unitdir}/grub-boot-indeterminate.service
-%{_unitdir}/system-update.target.wants
 %{_infodir}/%{name}*
 %{_datarootdir}/grub/*
-%{_sbindir}/%{name}-install
 %exclude %{_datarootdir}/grub/themes
 %exclude %{_datarootdir}/grub/*.h
 %{_datarootdir}/bash-completion/completions/grub
+%{_sbindir}/%{name}-install
 %{_sbindir}/%{name}-mkconfig
-%{_sbindir}/%{name}-switch-to-blscfg
 %{_sbindir}/%{name}-probe
 %{_sbindir}/%{name}-rpm-sort
 %{_sbindir}/%{name}-reboot
 %{_bindir}/%{name}-file
 %{_bindir}/%{name}-menulst2cfg
-%{_bindir}/%{name}-mkimage
 %{_bindir}/%{name}-mkrelpath
 %{_bindir}/%{name}-script-check
 %{_datadir}/man/man?/*
@@ -443,6 +373,7 @@ fi
 %exclude %{_datadir}/man/man1/%{name}-glue-efi*
 %exclude %{_datadir}/man/man1/%{name}-kbdcomp*
 %exclude %{_datadir}/man/man1/%{name}-mkfont*
+%exclude %{_datadir}/man/man1/%{name}-mkimage*
 %exclude %{_datadir}/man/man1/%{name}-mklayout*
 %exclude %{_datadir}/man/man1/%{name}-mknetdir*
 %exclude %{_datadir}/man/man1/%{name}-mkrescue*
@@ -452,15 +383,25 @@ fi
 # exclude man pages from tools-minimal
 %exclude %{_datadir}/man/man3/%{name}-get-kernel-settings*
 %exclude %{_datadir}/man/man8/%{name}-set-default*
-%exclude %{_datadir}/man/man8/%{name}-set*password*
+%exclude %{_datadir}/man/man8/%{name}-setpassword*
 %exclude %{_datadir}/man/man1/%{name}-editenv*
 %exclude %{_datadir}/man/man1/%{name}-mkpasswd-*
+
+%ifarch x86_64 %{?ix86}
+%{_sbindir}/%{name}-macbless
+%{_bindir}/%{name}-render-label
+%{_datadir}/man/man8/%{name}-macbless*
+%{_datadir}/man/man1/%{name}-render-label*
+%else
+%exclude %{_sbindir}/%{name}-macbless
+%exclude %{_bindir}/%{name}-render-label
 %exclude %{_datadir}/man/man8/%{name}-macbless*
 %exclude %{_datadir}/man/man1/%{name}-render-label*
+%endif
 
-%if %{with_legacy_arch}
+%if %{with_legacy_utils}
 %{_sbindir}/%{name}-install
-%ifarch x86_64
+%ifarch %{ix86} x86_64
 %{_sbindir}/%{name}-bios-setup
 %else
 %exclude %{_sbindir}/%{name}-bios-setup
@@ -480,10 +421,6 @@ fi
 %endif
 %endif
 
-
-# CIQ-specific EFI packages for secure boot:
-%include %{SOURCE1100}
-
 %files tools-extra
 %{_sbindir}/%{name}-sparc64-setup
 %{_sbindir}/%{name}-ofpathname
@@ -491,6 +428,7 @@ fi
 %{_bindir}/%{name}-glue-efi
 %{_bindir}/%{name}-kbdcomp
 %{_bindir}/%{name}-mkfont
+%{_bindir}/%{name}-mkimage
 %{_bindir}/%{name}-mklayout
 %{_bindir}/%{name}-mknetdir
 %ifnarch %{sparc}
@@ -505,6 +443,7 @@ fi
 %{_datadir}/man/man1/%{name}-glue-efi*
 %{_datadir}/man/man1/%{name}-kbdcomp*
 %{_datadir}/man/man1/%{name}-mkfont*
+%{_datadir}/man/man1/%{name}-mkimage*
 %{_datadir}/man/man1/%{name}-mklayout*
 %{_datadir}/man/man1/%{name}-mknetdir*
 %{_datadir}/man/man1/%{name}-mkrescue*
@@ -514,205 +453,71 @@ fi
 %exclude %{_datarootdir}/grub/themes/starfield
 
 %if 0%{with_efi_arch}
-%{expand:%define_efi_variant_files %%{package_arch} %%{grubefiname} %%{grubeficdname} %%{grubefiarch} %%{target_cpu_name} %%{grub_target_name}}
+%define_efi_variant_files %{package_arch} %{grubefiname} %{grubeficdname} %{grubefiarch} %{target_cpu_name} %{grub_target_name}
 %endif
 %if 0%{with_alt_efi_arch}
-%{expand:%define_efi_variant_files %%{alt_package_arch} %%{grubaltefiname} %%{grubalteficdname} %%{grubaltefiarch} %%{alt_target_cpu_name} %%{alt_grub_target_name}}
+%define_efi_variant_files %{alt_package_arch} %{grubaltefiname} %{grubalteficdname} %{grubaltefiarch} %{alt_target_cpu_name} %{alt_grub_target_name}
 %endif
 %if 0%{with_legacy_arch}
-%{expand:%define_legacy_variant_files %%{legacy_package_arch} %%{grublegacyarch}}
+%define_legacy_variant_files %{legacy_package_arch} %{grublegacyarch}
+%else
+%if 0%{with_legacy_utils}
+%exclude %{_sysconfdir}/%{name}.cfg
+%exclude %{_libdir}/grub/%{grublegacyarch}/*
+%exclude %{_libdir}/grub/%{grublegacyarch}/
+%endif
 %endif
 
 %changelog
-* Tue Jan 30 2024 Skip Grube <sgrube@ciq.com> - 2.02-150
-- Porting Rocky 8 secureboot grub2 to CIQ build
+* Thu Feb 1 2024 Nicolas Frayer <nfrayer@redhat.com> - 2.02-087.el7.14
+- Rebuild for signing
+- Related: RHEL-23460
 
-* Fri Nov 17 2023 Release Engineering <releng@rockylinux.org> - 2.02-150.rocky.0.1
-- Removing redhat old cert sources entries (Sherif Nagy)
-- Preserving rhel8 sbat entry based on shim-review feedback ticket no. 194
-- Porting to 8.9
-- Cleaning up grup.macro extra signing certs and updating rocky test CA and CERT
-- Cleaning up grup.macro extra signing certs
-- Use rocky-sb-certs for secure boot signing
+* Wed Jan 31 2024 Nicolas Frayer <nfrayer@redhat.com> - 2.02-087.el7.13
+- safemath: add grub_cast for gcc < 5.1
+- Related: RHEL-23460
 
-* Fri Jun 16 2023 Nicolas Frayer <nfrayer@redhat.com> - 2.02-150
-- kern/ieee1275/init: sync vec5 patchset with upstream
-- Resolves: #2172111
+* Tue Jan 30 2024 Nicolas Frayer <nfrayer@redhat.com> - 2.02-087.el7.12
+- Font CVE fixes and bump SBAT (CVE-2022-2601)
+- Resolves: RHEL-23460
 
-* Wed Jun 14 2023 Nicolas Frayer <nfrayer@redhat.com> - 2.02-149
-- efi/http: change uint32_t to uintn_t for grub_efi_http_message_t
-- Resolves: #2178388
+* Wed Nov 16 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-087.el7.11
+- Bump sbat
+- Resolves: CVE-2022-28733
 
-* Mon Feb 06 2023 Robbie Harwood <rharwood@redhat.com> - 2.02-148
-- ppc64le: cas5, take 3
-- Resolves: #2139508
+* Thu Sep 15 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-087.el7.10
+- Backport the relevant CVE fixes from the 2022-05-24 drop
+- Resolves: CVE-2022-28733
 
-* Tue Jan 10 2023 Robbie Harwood <rharwood@redhat.com> - 2.02-147
-- Enable TDX measurement to RTMR register
-- Resolves: #1981485
-
-* Wed Dec 14 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-146
-- ppc64le: fix lpar cas5
-- Resolves: #2139508
-
-* Tue Nov 08 2022 Robbie Harwood <rharwood@redhat.com> - 1:2.02-145
-- Font CVE fixes
-- Resolves: CVE-2022-2601
-
-* Tue Oct 18 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-144
-- blscfg: don't assume newline at end of cfg
-- Resolves: #2121132
-
-* Wed Oct 12 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-143
-- x86-efi: Fix an incorrect array size in kernel allocation
-- Also merge with 8.7
-- Resolves: #2031288
-
-* Thu Aug 25 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-141
-- Implement vec5 for cas negotiation
-- Resolves: #2117914
-
-* Wed Aug 24 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-140
-- Or two, because I forgot the debug patch
-- Resolves: #2118896
-
-* Thu Aug 18 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-139
-- Kernel allocator fixups (in one pass)
-- Resolves: #2118896
-
-* Wed Jul 20 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-138
-- Rotate signing keys on ppc64le
-- Resolves: #2074762
-
-* Fri Jun 03 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-137
-- CVE fixes for 2022-06-07
-- CVE-2022-28736 CVE-2022-28735 CVE-2022-28734 CVE-2022-28733
-- CVE-2021-3697 CVE-2021-3696 CVE-2021-3695
-- Resolves: #2070687
-
-* Mon May 16 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-129
-- ppc64le: Slow boot after LPM
-- Resolves: #2070347
-
-* Wed May 04 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-127
-- ppc64le: CAS improvements, prefix detection, and vTPM support
-- Resolves: #2076795
-- Resolves: #2026568
-- Resolves: #2051331
-
-* Wed May 04 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-126
-- Fix rpm verification error on grub.cfg permissions
-- Resolves: #2071643
-
-* Wed Apr 20 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-125
-- RHEL 8.6.0 import; no code changes
-- Resolves: #2062892
-
-* Mon Mar 28 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-123
+* Tue Mar 29 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-087.el7.9
 - Bump for signing
+- Resolves: #1892860
 
-* Wed Mar 09 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-122
-- Fix initialization on efidisk patch
+* Wed Mar 09 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-0.87.el7.8
+- Fix accidental reboot in grub_exit
+- Resolves: #1892860
 
-* Tue Mar 08 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-121
-- Backport support for loading initrd above 4GB
-
-* Mon Feb 28 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-120
-- Bump signing
-- Resolves: #2032294
-
-* Mon Feb 28 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-119
-- Enable connectefi module
-- Resolves: #2032294
-
-* Fri Feb 25 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-118
-- Fix check on blscfg conditional (mlewando)
-- Resolves: #1899903
-
-* Thu Feb 24 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-117
-- Once more, for signing
-- Resolves: #2048904
-
-* Thu Feb 24 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-116
-- Add efidisk/connectefi patches
-- Resolves: #2048904
-- Resolves: #2032294
-
-* Fri Feb 18 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-115
-- Re-arm GRUB_ENABLE_BLSCFG=false
-- Resolves: #1899903
-
-* Mon Feb 14 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-114
-- Fix behavior of GRUB_TERMINAL_INPUT=at_keyboard
-- Resolves: #2020927
-
-* Wed Feb 09 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-113
-- Bump to fix target
-- Resolves: #1809246
-
-* Wed Feb 09 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-112
-- Fix DHCP proxy efi booting
-- Resolves: #1809246
-
-* Mon Feb 07 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-111
-- Bump to fix target
-- Resolves: #1914575
-
-* Mon Feb 07 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-110
-- Don't run grub-boot-success.timer in a nspawn container
-- Resolves: #1914575
-
-* Mon Feb 07 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-109
-- Drop prelink snippet
-- Resolves: #2016269
-
-* Wed Feb 02 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-108
-- Bump version to fix build target
-- Resolves: #2030359
-
-* Wed Feb 02 2022 Robbie Harwood <rharwood@redhat.com> - 2.02-107
-- CVE-2021-3981 (Incorrect read permission in grub.cfg)
-- Resolves: #2030359
-
-* Thu Aug 19 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-106
-- Fix device discoverability on PowerVM when the prefix is not set (dja)
-  Related: rhbz#1899864
-
-* Thu Jul 22 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-105
-- Discover the device to read the config from as a fallback
-  Related: rhbz#1899864
-
-* Mon Jun 21 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-104
-- 20-grub-install: Create a symvers.gz symbolic link
-  Resolves: rhbz#1919125
-
-* Mon May 17 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-103
+* Mon May 17 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-0.87.el7.7
 - Fix boot failures in ppc64le caused by storage race condition (diegodo)
-  Resolves: rhbz#1942152
+  Resolves: rhbz#1942148
 
-* Tue May 11 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-102
-- Build and sign powerpc-ieee1275 images
-  Related: rhbz#1899864
+* Fri Mar 05 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-0.87.el7.6
+- Fix ppc64le performance issues (diegodo)
+  Resolves: rhbz#1759298
 
-* Fri Apr 23 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-101
-- Find and claim more memory for ieee1275 (dja)
-  Related: rhbz#1853410
+* Thu Mar 04 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-0.87.el7.5
+- Add the at keyboard patches that weren't included
+  Resolves: rhbz#1892240
 
-* Fri Apr 23 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-100
-- Sync with the latest content of the rhel-8.4.0 branch
-  Resolves: rhbz#1952840
+* Thu Mar 04 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-0.87.el7.4
+- add keylayouts and at_keyboard modules to EFI binary
+  Resolves: rhbz#1892240
 
-* Thu Feb 25 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-99
-- Fix bug of grub2-install not checking for the SBAT option
-  Resolves: CVE-2020-14372
-  Resolves: CVE-2020-25632
-  Resolves: CVE-2020-25647
-  Resolves: CVE-2020-27749
-  Resolves: CVE-2020-27779
-  Resolves: CVE-2021-20225
-  Resolves: CVE-2021-20233
+* Wed Mar 03 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-0.87.el7.3
+- at_keyboard: use set 1 when keyboard is in Translate mode (rmetrich)
+  Resolves: rhbz#1892240
 
-* Thu Feb 25 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-98
+* Fri Feb 26 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-0.87.el7.2
 - Fix another batch of CVEs
   Resolves: CVE-2020-14372
   Resolves: CVE-2020-25632
@@ -722,64 +527,28 @@ fi
   Resolves: CVE-2021-20225
   Resolves: CVE-2021-20233
 
-* Tue Feb 23 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-97
-- Fix keylayouts module listed twice in GRUB_MODULES variable
-
-* Tue Feb 23 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-96
-- Fix "Add 'at_keyboard_fallback_set' var to force the set manually"
-- Fix a boot failure due patch "ieee1275: claim up to 256MB memory"
-
-* Tue Jan 26 2021 Javier Martinez Canillas <javierm@redhat.com> - 2.02-95
-- Add appended signatures support for ppc64le LPAR Secure Boot (daxtens)
-  Resolves: rhbz#1853410
-
-* Wed Jan 20 2021 Renaud Métrich <rmetrich@redhat.com> - 2.02-94
-- Add 'at_keyboard_fallback_set' var to force the set manually
-- Related: rhbz#1897587
-
-* Mon Dec 14 2020 Javier Martinez Canillas <javierm@redhat.com> - 2.02-93
-- add keylayouts and at_keyboard modules to UEFI Grub2 (rmetrich)
-  Related: rhbz#1897587
-- at_keyboard: use set 1 when keyboard is in Translate mode (rmetrich)
-  Resolves: rhbz#1897587
-- add GRUB enhanced debugging features (rmetrich)
-  Resolves: rhbz#1776249
-- ieee1275: Avoiding many unecessary open/close (diegodo)
-  Resolves: rhbz#1862632
-- ieee1275: device mapper and fibre channel discovery support (diegodo)
-  Resolves: rhbz#1873724
-
-* Mon Nov 23 2020 Jan Hlavac <jhlavac@redhat.com> - 2.02-92
-- grub2-install: disable support for EFI platforms
-  Resolves: rhbz#1737444
-- Include a few more modules to EFI build needed for LUKS support (javierm)
-  Related: rhbz#1873725
-
-* Mon Nov 16 2020 Javier Martinez Canillas <javierm@redhat.com> - 2.02-91
-- Fix tps-rpmtest failing due /boot/grub2/grubenv attributes mismatch
-  Resolves: rhbz#1813959
-- Include in EFI build the modules needed for LUKS support
-  Resolves: rhbz#1873725
+* Wed Nov 18 2020 Javier Martinez Canillas <javierm@redhat.com> - 2.02-0.87.e7.1
 - Fix keyboards that report IBM PC AT scan codes
-  Resolves: rhbz#1897587
+  Resolves: rhbz#1892240
 
-* Mon Aug 31 2020 Javier Martinez Canillas <javierm@redhat.com> - 2.02-90
-- Roll over TFTP block counter to prevent timeouts with data packets
-  Resolves: rhbz#1871034
-
-* Fri Aug 21 2020 Javier Martinez Canillas <javierm@redhat.com> - 2.02-89
+* Mon Aug 24 2020 Javier Martinez Canillas <javierm@redhat.com> - 2.02-0.87
 - Fix TFTP timeouts when trying to fetch files larger than 65535 KiB
-  Resolves: rhbz#1871034
+  Resolves: rhbz#1869987
 
-* Tue Aug 11 2020 Javier Martinez Canillas <javierm@redhat.com> - 2.02-88
-- Fix a legacy BIOS boot issue when a using config file shared with EFI
-  Resolves: rhbz#1850193
+* Mon Jul 27 2020 Peter Jones <pjones@redhat.com> - 2.02-0.86
+- Fix a mis-merge
+  Related: CVE-2020-15705
 
-* Mon Jul 27 2020 Peter Jones <pjones@redhat.com> - 2.02-87
+* Mon Jul 27 2020 Peter Jones <pjones@redhat.com> - 2.02-0.85
 - Couple more late fixes.
+  Resolves: CVE-2020-10713
+  Resolves: CVE-2020-14308
+  Resolves: CVE-2020-14309
+  Resolves: CVE-2020-14310
+  Resolves: CVE-2020-14311
   Resolves: CVE-2020-15705
 
-* Sun Jul 26 2020 Peter Jones <pjones@redhat.com> - 2.02-86
+* Sun Jul 26 2020 Peter Jones <pjones@redhat.com> - 2.02-0.84
 - Couple more late fixes.
   Resolves: CVE-2020-10713
   Resolves: CVE-2020-14308
@@ -787,575 +556,571 @@ fi
   Resolves: CVE-2020-14310
   Resolves: CVE-2020-14311
 
-* Mon Jul 20 2020 Peter Jones <pjones@redhat.com> - 2.02-85
-- Fix several CVEs
+* Mon Jul 20 2020 Peter Jones <pjones@redhat.com> - 2.02-0.83
+- Fix several CVEs:
   Resolves: CVE-2020-10713
   Resolves: CVE-2020-14308
   Resolves: CVE-2020-14309
   Resolves: CVE-2020-14310
   Resolves: CVE-2020-14311
 
-* Tue May 19 2020 Javier Martinez Canillas <javierm@redhat.com> - 2.02-84
-- Add fixes for greenboot support
-  Resolves: rhbz#1832336
-
-* Mon May 18 2020 Javier Martinez Canillas <javierm@redhat.com> - 2.02-83
-- Fix a segfault in grub2-editenv when attempting to shrink a variable
-  Resolves: rhbz#1761496
-
-* Mon Apr 27 2020 Javier Martinez Canillas <javierm@redhat.com> - 2.02-82
-- Drop "Disable multiboot, multiboot2, and linux16 modules on EFI builds"
-  Resolves: rhbz#1779480
+* Mon Mar 23 2020 Javier Martinez Canillas <javierm@redhat.com> - 2.02-0.82
+- Prepend prefix when HTTP path is relative
 - efi/http: Export {fw,http}_path variables to make them global
-  Resolves: rhbz#1811561
+  Resolves: rhbz#1616395
 - efi/http: Enclose literal IPv6 addresses in square brackets
 - efi/net: Allow to specify a port number in addresses
 - efi/ip4_config: Improve check to detect literal IPv6 addresses
 - efi/net: Print a debug message if parsing the address fails
-  Resolves: rhbz#1811560
-- Set image base address before jumping to the PE/COFF entry point
-  Resolves: rhbz#1819624
+  Resolves: rhbz#1732765
 
-* Thu Dec 05 2019 Javier Martinez Canillas <javierm@redhat.com> - 2.02-81
-- Another fix for blscfg variable expansion support
-  Related: rhbz#1669252
+* Fri Sep 13 2019 Javier Martinez Canillas <javierm@redhat.com> - 2.02-0.81
+- Only make grub2-tools Obsoletes and Provides grub2-tools-efi for x86_64
+  Resolves: rhbz#1748019
 
-* Thu Nov 28 2019 Javier Martinez Canillas <javierm@redhat.com> - 2.02-80
-- Fix PRIxGRUB_EFI_STATUS definition
-  Related: rhbz#1761811
-- TPM: Print messages if measuraments fail as debug instead of error
-  Resolves: rhbz#1761811
-- unix/platform: Initialize variable to fix grub-install on UEFI system
-  Resolves: rhbz#1768689
-- blscfg: add a space char when appending fields for variable expansion
-  Resolves: rhbz#1669252
+* Wed Mar 27 2019 Javier Martinez Canillas <javierm@redhat.com> - 2.02-0.80
+- Rebuild with correct build target for signing
+  Resolves: rhbz#1693213
 
-* Fri Nov 22 2019 Javier Martinez Canillas <javierm@redhat.com> - 2.02-79
-- grub-set-bootflag: Write new env to tmpfile and then rename (hdegoede)
-  Resolves: CVE-2019-14865
+* Tue Mar 26 2019 Javier Martinez Canillas <javierm@redhat.com> - 2.02-0.79
+- Ignore the modification time when doing RPM verification of /boot/efi files
+  Resolves: rhbz#1496952
 
-* Thu Sep 26 2019 Javier Martinez Canillas <javierm@redhat.com> - 2.02-77
-- 10_linux_bls: don't add --users option to generated menu entries
-  Resolves: rhbz#1755815
-
-* Fri Aug 09 2019 Javier Martinez Canillas <javierm@redhat.com> - 2.02-76
-- Include regexp module in EFI builds
-  Resolves: rhbz#1737670
-
-* Wed Jun 19 2019 Javier Martinez Canillas <javierm@redhat.com> - 2.02-75
-- Fix setting default entry on ppc64le when using OPAL
-  Resolves: rhbz#1721815
-
-* Tue Jun 04 2019 Sergio Durigan Junior <sergiodj@redhat.com> - 2.02-74
-- Use '-g' instead of '-g3' when compiling grub2.
-  Related: rhbz#1653961
-
-* Wed May 29 2019 Peter Jones <pjones@redhat.com> - 2.02-73
-- Rebuild once again to try to get rpmdiff happy.
-  Related: rhbz#1653961
-
-* Mon May 27 2019 Javier Martinez Canillas <javierm@redhat.com> - 2.02-72
-- Build with the correct target
-  Related: rhbz#1653961
-
-* Fri May 24 2019 Peter Jones <pjones@redhat.com> - 2.02-71
-- Fix (a fourth time, due to a typo) how LDFLAGS works on non-efi platforms.
-  Related: rhbz#1653961
-
-* Thu May 23 2019 Peter Jones <pjones@redhat.com> - 2.02-70
-- Fix (once again) how CFLAGS and LDFLAGS propogate the settings for hardened
-  builds, because rpmdiff doesn't like the current way failing.
-  Related: rhbz#1653961
-
-* Tue May 21 2019 Javier Martinez Canillas <javierm@redhat.com> - 2.02-69
-- Enable package gating
-  Resolves: rhbz#1653961
-
-* Mon May 20 2019 Javier Martinez Canillas <javierm@redhat.com> - 2.02-68
+* Wed Mar 20 2019 Javier Martinez Canillas <javierm@redhat.com> - 2.02-0.78
+- Prevent errors from diskfilter scan of removable drives
+  Resolves: rhbz#1446418
 - Avoid grub2-efi package to overwrite existing /boot/grub2/grubenv file
-  Resolves: rhbz#1680572
-- Try to set -fPIE and friends on libgnu.a (pjones)
-- blscfg: fallback to default_kernelopts if BLS option field isn't set
-  Related: rhbz#1680572
-- Remove bogus load_env after blscfg command in 10_linux
-
-* Mon Apr 29 2019 Javier Martinez Canillas <javierm@redhat.com> - 2.02-67
-- Fix failure to request grub.cfg over HTTP
-  Resolves: rhbz#1490991
-
-* Wed Dec 19 2018 Javier Martinez Canillas <javierm@redhat.com> - 2.02-66
-- Fix grub.cfg-XXX look up when booting over TFTP
-  Resolves: rhbz#1658500
-
-* Mon Dec 17 2018 Peter Jones <pjones@redhat.com> - 2.02-65
-- Don't build the grub2-efi-ia32-* packages on i686; it causes multilib
-  errors and we don't ship the result anyway.
-  Related: rhbz#1637875
-
-* Tue Dec 11 2018 Javier Martinez Canillas <javierm@redhat.com> - 2.02-64
-- Make grub2-mkconfig to honour GRUB_CMDLINE_LINUX in /etc/default/grub
-  Resolves: rhbz#1637875
-- docs: Stop using polkit / pkexec for grub-boot-success.timer / service
-  Resolves: rhbz#1655687
-
-* Tue Dec 04 2018 Javier Martinez Canillas <javierm@redhat.com> - 2.02-63
-- BLS files should only be copied by grub-switch-to-blscfg if BLS isn't set
-  Related: rhbz#1638117
-- Fix get_entry_number() wrongly dereferencing the tail pointer
-  Resolves: rhbz#1654936
-
-* Fri Nov 30 2018 Javier Martinez Canillas <javierm@redhat.com> - 2.02-62
-- Drop "Be more aggro about actually using the *configured* network device."
-  Resolves: rhbz#1654388
-- Fix menu entry selection based on title
-  Resolves: rhbz#1654936
-
-* Tue Nov 27 2018 Javier Martinez Canillas <javierm@redhat.com> - 2.02-61
-- Drop buggy downstream patch "efinet: retransmit if our device is busy"
-  Resolves: rhbz#1649048
-- Make the menu entry users option argument to be optional
-  Related: rhbz#1652434
-- 10_linux_bls: add missing menu entries options
-  Resolves: rhbz#1652434
-
-* Wed Nov 21 2018 Javier Martinez Canillas <javierm@redhat.com> - 2.02-60
-- Remove quotes when reading ID value from /etc/os-release
-  Related: rhbz#1650706
-- blscfg: expand grub_users before passing to grub_normal_add_menu_entry()
-  Resolves: rhbz#1650706
-
-* Thu Nov 08 2018 Javier Martinez Canillas <javierm@redhat.com> - 2.02-59
-- Remove installkernel-bls script
-  Related: rhbz#1647721
-
-* Wed Oct 24 2018 Javier Martinez Canillas <javierm@redhat.com> - 2.02-58
-- Don't unconditionally set default entry when installing debug kernels
-  Resolves: rhbz#1636346
-
-* Fri Oct 19 2018 Peter Jones <pjones@redhat.com> - 2.02-57
-- Fix menu entry selection based on ID and title
-  Resolves: rhbz#1640979
-
-* Fri Oct 19 2018 Javier Martinez Canillas <javierm@redhat.com>
-- don't set saved_entry on grub2-mkconfig
-  Resolves: rhbz#1636466
-
-* Tue Oct 16 2018 Peter Jones <pjones@redhat.com> - 2.02-56
-- Rebuild for signing
-  Resolves: rhbz#1625565
-- blscfg: Make 10_linux_bls sort the same way as well
-  Related: rhbz#1638103
-
-* Mon Oct 15 2018 Peter Jones <pjones@redhat.com> - 2.02-55
-- blscfg: sort everything with rpm *package* comparison
-  Related: rhbz#1638103
-
-* Thu Oct 11 2018 Peter Jones <pjones@redhat.com> - 2.02-54
-- kernel-install: Remove existing initramfs if it's older than the kernel
-  Resolves: rhbz#1638405
-- Update the saved entry correctly after a kernel install
-  Resolves: rhbz#1638117
-
-* Fri Oct 05 2018 Javier Martinez Canillas <javierm@redhat.com> - 2.02-53
-- Only set kernelopts in grubenv if it wasn't set before
-  Resolves: rhbz#1636466
-
-* Thu Oct 04 2018 Peter Jones <pjones@redhat.com> - 2.02-52
-- Remove 01_fallback_counting entirely until we can sort its issues out.
-  Resolves: rhbz#1615954
-
-* Thu Oct 04 2018 Javier Martinez Canillas <javierm@redhat.com> - 2.02-51
-- add 10_linux_bls grub.d snippet to generate menu entries from BLS files
-  Resolves: rhbz#1636013
-- Fix syntax issues in 01_fallback_counting.in
-  Resolves: rhbz#1615954
-
-* Mon Oct 01 2018 pjones <pjones@redhat.com> - 1:2.02-50
-- Disable TPM (again) on BIOS; it really does not work reliably.
-  Resolves: rhbz#1579835
-- Make blscfg module loadable on other grub2 builds
-  Resolves: rhbz#1633646
-- Include blscfg module on ppc builds
-  Related: rhbz#1633646
-- Fix rpmdiff complaints about execstack
-  Related: rhbz#1633646
-
-* Mon Sep 24 2018 Peter Jones <pjones@redhat.com> - 2.02-49
-- Add an installkernel script for BLS configurations
-  Related: rhbz#1619344
-
-* Fri Sep 14 2018 Peter Jones <pjones@redhat.com> - 2.02-48
-- Go back to forcing all allocations on x86_64 to be 32-bit, as many UEFI
-  implementations seem to have drivers with DMA issues for addresses
-  above 4GB.
-  Resolves: rhbz#1628346
-
-* Wed Sep 12 2018 Peter Jones <pjones@redhat.com> - 2.02-47
-- BLS fixes from the F29 tree
-  - Use /boot/loader/entries as BLS dir also on EFI systems
-  - Make 20-grub.install to exit if there is no machine ID set
-  - More fixes for BLS
-  Resolves: rhbz#1620954
-
-* Mon Aug 27 2018 Peter Jones <pjones@redhat.com> - 2.02-46
-- Better memory allocation for kernel/initramfs on aarch64
-  Resolves: rhbz#1620954
-
-* Tue Aug 14 2018 Peter Jones <pjones@redhat.com> - 2.02-45
-- Fix a typo in /etc/grub.d/01_fallback_counting
-  Resolves: rhbz#1615954
-
-* Thu Aug 09 2018 Peter Jones <pjones@redhat.com> - 2.02-44
-- Rebased to newer upstream for fedora-29
-
-* Thu Aug 09 2018 pjones <pjones@redhat.com> - 1:2.02-43
-- Rebased to newer upstream for fedora-29
-
-* Tue Jul 17 2018 Peter Jones <pjones@redhat.com> - 2.02-42
-- Fix some minor BLS issues
-- Rework the FDT module linking to make aarch64 build and boot right
-  Resolves: rhbz#1601835
-
-* Mon Jul 16 2018 pjones <pjones@redhat.com> - 2.02-41
-- Pull in newer sb patches that do a better job with config file writing
-
-* Mon Jul 16 2018 Hans de Goede <hdegoede@redhat.com>
-- Make the user session automatically set the boot_success grubenv flag
-- Make offline-updates increment the boot_indeterminate grubenv variable
-
-* Fri Jul 13 2018 Peter Jones <pjones@redhat.com> - 2.02-40
-- Revert broken moduledir fix in this tree as well.
-
-* Tue Jul 10 2018 pjones <pjones@redhat.com> - 2.02-39
-- Fix our linuxefi/linux command reunion.
-
-* Tue Jul 10 2018 pjones <pjones@redhat.com> - 2.02-38
-- Rebased to newer upstream for RHEL-8
-
-* Wed May 16 2018 Peter Jones <pjones@redhat.com> - 2.02-37
-- Fixups to work with gcc 8
-- Experimental https boot support on UEFI
-- XFS fixes for sparse inode support
-  Resolves: rhbz#1575797
-
-* Thu May 10 2018 Javier Martinez Canillas <javierm@redhat.com> - 2.02-36
-- Use version field to sort BLS entries if id field isn't defined
-- Add version field to BLS fragments generated by 20-grub.install
-
-* Tue Apr 24 2018 Peter Jones <pjones@redhat.com> - 2.02-35
-- A couple of fixes needed by Fedora Atomic - javierm
-
-* Mon Apr 23 2018 Peter Jones <pjones@redhat.com> - 2.02-34
-- Put the os-prober dep back in - we need to change test plans and criteria
-  before it can go.
-  Resolves: rhbz#1569411
-
-* Wed Apr 11 2018 Peter Jones <pjones@redhat.com> - 2.02-33
-- Work around some issues with older automake found in CentOS.
-- Make multiple initramfs images work in BLS.
-
-* Wed Apr 11 2018 Javier Martinez Canillas <javierm@redhat.com> - 2.02-32
-- Make 20-grub.install to generate debug BLS when MAKEDEBUG is set.
-
-* Fri Apr 06 2018 Peter Jones <pjones@redhat.com> - 2.02-31
-- Pull in some TPM fixes I missed.
-
-* Fri Apr 06 2018 Peter Jones <pjones@redhat.com> - 2.02-30
-- Enable TPM measurements
-- Set the default boot entry to the first entry when we're using BLS.
-
-* Tue Apr 03 2018 Peter Jones <pjones@redhat.com> - 2.02-29
-- Add grub2-switch-to-blscfg
-- Fix for BLS paths on BIOS / non-UEFI (javierm)
-
-* Fri Mar 09 2018 Javier Martinez Canillas <javierm@redhat.com> - 2.02-28
-- Install kernel-install scripts.
-
-* Tue Mar 06 2018 Peter Jones <pjones@redhat.com> - 2.02-27
-- Build the blscfg module in on EFI builds.
-
-* Wed Feb 28 2018 Peter Jones <pjones@redhat.com> - 2.02-26
-- Try to fix things for new compiler madness.
-  I really don't know why gcc decided __attribute__((packed)) on a "typedef
-  struct" should imply __attribute__((align (1))) and that it should have a
-  warning that it does so.  The obvious behavior would be to keep the alignment
-  of the first element unless it's used in another object or type that /also/
-  hask the packed attribute.  Why should it change the default alignment at
-  all?
-- Merge in the BLS patches Javier and I wrote.
-- Attempt to fix pmtimer initialization failures to not be super duper slow.
-
-* Fri Feb 09 2018 Igor Gnatenko <ignatenkobrain@fedoraproject.org>
-- Escape macros in %%changelog
-
-* Tue Jan 23 2018 Peter Jones <pjones@redhat.com> - 2.02-24
-- Fix a merge error from 2.02-21 that affected kernel loading on Aarch64.
-  Related: rhbz#1519311
-  Related: rhbz#1506704
-  Related: rhbz#1502312
-
-* Fri Jan 19 2018 Peter Jones <pjones@redhat.com> - 2.02-23
-- Only nerf annobin, not -fstack-crash-protection.
-- Fix a conflict on /boot/efi directory permissions between -cdboot and the
-  normal bootloader.
-
-* Thu Jan 18 2018 Peter Jones <pjones@redhat.com> - 2.02-22
-- Nerf some gcc 7.2.1-6 'features' that cause grub to crash on start.
-
-* Thu Jan 18 2018 Peter Jones <pjones@redhat.com> - 2.02-21
-- Fix grub2-efi-modules provides/obsoletes generation
-  Resolves: rhbz#1506704
-- *Also* build grub-efi-ia32{,-*,!-modules} packages for i686 builds
-  Resolves: rhbz#1502312
-- Make everything under /boot/efi be mode 0700, since that's what FAT will
-  show anyway.
-
-* Wed Jan 17 2018 Peter Jones <pjones@redhat.com> - 2.02-20
-- Update to newer upstream for F28
-- Pull in patches for Apollo Lake hardware
-  Resolves: rhbz#1519311
-
-* Tue Oct 24 2017 Peter Jones <pjones@redhat.com> - 2.02-19
-- Handle xen module loading (somewhat) better
-  Resolves: rhbz#1486002
-
-* Wed Sep 20 2017 Peter Jones <pjones@redhat.com> - 2.02-18
-- Make grub2-efi-aa64 provide grub2
-  Resolves: rhbz#1491045
-
-* Mon Sep 11 2017 Dennis Gilmore <dennis@ausil.us> - 2.02-17
-- bump for Obsoletes again
-
-* Wed Sep 06 2017 Peter Jones <pjones@redhat.com> - 2.02-16
-- Fix Obsoletes on grub2-pc
-
-* Wed Aug 30 2017 Petr Šabata <contyk@redhat.com> - 2.02-15
-- Limit the pattern matching in do_alt_efi_install to files to
-  unbreak module builds
-
-* Fri Aug 25 2017 Peter Jones <pjones@redhat.com> - 2.02-14
-- Revert the /usr/lib/.build-id/ change:
-  https://fedoraproject.org/wiki/Changes/ParallelInstallableDebuginfo
-  says (without any particularly convincing reasoning):
-    The main build-id file should not be in the debuginfo file, but in the
-    main package (this was always a problem since the package and debuginfo
-    package installed might not match). If we want to make usr/lib/debug/ a
-    network resource then we will need to move the symlink to another
-    location (maybe /usr/lib/.build-id).
-  So do it that way.  Of course it doesn't matter, because exclude gets
-  ignored due to implementation details.
-
-* Fri Aug 25 2017 Peter Jones <pjones@redhat.com> - 2.02-13
-- Add some unconditional Provides:
-  grub2-efi on grub2-efi-${arch}
-  grub2-efi-cdboot on grub2-efi-${arch}-cdboot
-  grub2 on all grub2-${arch} pacakges
-- Something is somehow adding /usr/lib/.build-id/... to all the -tools
-  subpackages, so exclude all that.
-
-* Thu Aug 24 2017 Peter Jones <pjones@redhat.com> - 2.02-12
-- Fix arm kernel command line allocation
-  Resolves: rhbz#1484609
-- Get rid of the temporary extra efi packages hack.
-
-* Wed Aug 23 2017 Peter Jones <pjones@redhat.com> - 2.02-11
-- Put grub2-mkimage in -tools, not -tools-extra.
-- Fix i686 building
-- Fix ppc HFS+ usage due to /boot/efi's presence.
-
-* Fri Aug 18 2017 Peter Jones <pjones@redhat.com> - 2.02-10
-- Add the .img files into grub2-pc-modules (and all legacy variants)
-
-* Wed Aug 16 2017 Peter Jones <pjones@redhat.com> - 2.02-9
-- Re-work for ia32-efi.
-
-* Wed Aug 16 2017 pjones <pjones@redhat.com> - 2.02-8
-- Rebased to newer upstream for fedora-27
-
-* Tue Aug 15 2017 Peter Jones <pjones@redhat.com> - 2.02-7
-- Rebuild again with new fixed rpm. (bug #1480407)
-
-* Fri Aug 11 2017 Kevin Fenzi <kevin@scrye.com> - 2.02-6
-- Rebuild again with new fixed rpm. (bug #1480407)
-
-* Thu Aug 10 2017 Kevin Fenzi <kevin@scrye.com> - 2.02-5
-- Rebuild for rpm soname bump again.
-
-* Thu Aug 10 2017 Igor Gnatenko <ignatenko@redhat.com> - 2.02-4
-- Rebuilt for RPM soname bump
-
-* Thu Aug 03 2017 Peter Jones <pjones@redhat.com> - 2.02-3
-- Rebuild so it gets SB signed correctly.
-  Related: rhbz#1335533
-- Enable lsefi
-
-* Mon Jul 24 2017 Michael Cronenworth <mike@cchtml.com> - 2.02-2
-- Fix symlink to work on both EFI and BIOS machines
-  Resolves: rhbz#1335533
-
-* Mon Jul 10 2017 Peter Jones <pjones@redhat.com> - 2.02-1
-- Rebased to newer upstream for fedora-27
-
-* Wed Feb 01 2017 Stephen Gallagher <sgallagh@redhat.com> - 2.02-0.39
-- Add missing %%license macro
-- Fix deps that should have moved to -tools but didn't.
-
-* Thu Dec 08 2016 Peter Jones <pjones@redhat.com> - 2.02-0.38
-- Fix regexp in power compile flags, and synchronize release number with
-  other branches.
-
-* Fri Dec 02 2016 pjones <pjones@redhat.com> - 1:2.02-0.37
-- Rebased to newer upstream for fedora-26
-
-* Thu Dec 01 2016 Peter Jones <pjones@redhat.com> - 2.02-0.36
-- Update version to .36 because I already built an f25 one named 0.35
-
-* Thu Dec 01 2016 pjones <pjones@redhat.com> - 1:2.02-0.35
-- Rebased to newer upstream for fedora-26
-
-* Thu Dec 01 2016 Peter Jones <pjones@redhat.com> - 2.02-0.34
-- Fix power6 makefile bits for newer autoconf defaults.
-- efi/chainloader: fix wrong sanity check in relocate_coff() (Laszlo Ersek)
-  Resolves: rhbz#1347291
-
-* Thu Aug 25 2016 Peter Jones <pjones@redhat.com> - 2.02-0.34
-- Update to be newer than f24's branch.
-- Add grub2-get-kernel-settings
+  Resolves: rhbz#1497918
+- Remove glibc32 and glibc-static(x86-32) BuildRequires
+  Resolves: rhbz#1614259
+
+* Thu Oct 25 2018 Javier Martinez Canillas <javierm@redhat.com> - 2.02-0.77
+- Re-enable regexp module
+  Resolves: rhbz#1630678
+
+* Mon Jul 30 2018 pjones <pjones@redhat.com> - 2.02.0.76
+- Fix PCIe probing in EFI UGA driver.
+  Resolves: rhbz#1583708
+
+* Wed Jul 18 2018 Peter Jones <pjones@redhat.com> - 2.02-0.74
+- Fix symlink issues with grubenv
+  Resolves: rhbz#1602773
+  Related: rhbz#1497918
+- Make the common subpackage only build on x86_64 to avoid timestamp
+  mismatches.
+  Related: rhbz#1602773
+  Related: rhbz#1497918
+
+* Fri Jun 29 2018 Peter Jones <pjones@redhat.com> - 2.02-0.73
+- Fix loading grub modules with no symbols defined.
+  Related: rhbz#1490981
+
+* Thu Jun 28 2018 Peter Jones <pjones@redhat.com> - 2.02-0.72
+- Revert module dir fix; it still doesn't work.
+  Resolves: rhbz#1594703
+
+* Mon Jun 25 2018 Peter Jones <pjones@redhat.com> - 2.02-0.71
+- The change from 2.02-0.65.el7_4.2 never made it onto the main branch,
+  so one more build to avoid the regression.
+  Related: rhbz#1340893
+
+* Mon Jun 25 2018 Peter Jones <pjones@redhat.com> 2.02-0.70
+- ... and once more, because I built for the wrong target.
+  Related: rhbz#1340893
+
+* Mon Jun 25 2018 Peter Jones <pjones@redhat.com> - 2.02-0.69
+- Build utilities on i686 as well, so grubby can build-dep it there.
+  Related: rhbz#1340893
+
+* Fri Jun 22 2018 Peter Jones <pjones@redhat.com> - 2.02-0.68
+- More work on /boot/efi/... permissions
+  Resolves: rhbz#1496952
+- Rework grubenv symlinks and handle them on upgrades
+  Resolves: rhbz#1497918
+- Make grub2-setpassword -o work
+  Resolves: rhbz#1512749
+
+* Thu Jun 21 2018 Peter Jones <pjones@redhat.com> - 2.02-0.67
+- Make the permissions on /boot/efi/... match the filesystem's requirements.
+  Resolves: rhbz#1496952
+
+* Thu Jun 21 2018 Peter Jones <pjones@redhat.com> - 2.02-0.66
+- Fix EFI UGA driver when the framebuffer is above 4G
+  Resolves: rhbz#1457988
+- Handle XFS filesystems with sparse inodes
+  Resolves: rhbz#1402716
+- Support HTTP booting
+  Resolves: rhbz#1490981
+
+* Mon Oct 09 2017 Peter Jones <pjones@redhat.com> - 2.02-0.65.el7_4.2
+- Fix an incorrect man page exclusion on x86_64.
+
+* Fri Oct 06 2017 Peter Jones <pjones@redhat.com> - 2.02-0.65.1
+- More precise requires and obsoletes on the -tools* subpackages to avoid
+  issues with mixing and matching repos the subpackages are split between.
+
+* Fri Sep 22 2017 Peter Jones <pjones@redhat.com> - 2.02-0.65
+- Fix spurious : at the end of the mac address netboot paths.
+  Resolves: rhbz#1483740
+
+* Wed May 31 2017 Peter Jones <pjones@redhat.com> - 2.02-0.64
+- Revert pkglibdir usage; we have to coordinate this with Lorax.
+  Related: rhbz#1455243
+
+* Tue May 30 2017 pjones <pjones@redhat.com> - 2.02-0.63
+- Fix grub2-mkimage on ppc* to *also* deal with pkglibdir changing.
+  Related: rhbz#1455243
+
+* Tue May 30 2017 Peter Jones <pjones@redhat.com> - 2.02-0.62
+- Fix grub2-mkimage on ppc* to *also* deal with pkglibdir changing.
+  Related: rhbz#1455243
+
+* Wed May 24 2017 Peter Jones <pjones@redhat.com> - 2.02-0.61
+- Fix some minor ia32 booting bugs
+  Related: rhbz#1310763
+  Related: rhbz#1411748
+  Related: rhbz#1300009
+- Add support for non-Ethernet network cards
+  Related: rhbz#1232432
+- Add support for http booting
+  Resolves: rhbz#1232432
+- Fix efi module subpackage obsoletes/provides
+  Resolves: rhbz#1447723
+- Make ppc modules subpackages use different directories on the filesystem.
+  Resolves: rhbz#1455243
+
+* Thu Apr 20 2017 Peter Jones <pjones@redhat.com> - 2.02-0.60
+- Fix ppc64 deciding /boot/efi might somehow be the CHRP partition if it
+  exists.  This is also why the bug we fixed in 0.59 showed up at all.
+  Resolves: rhbz#1443809
+  Resolves: rhbz#1442970
+- Fix a regexp problem where rpm spec parser un-escapes things that
+  don't need escaping, which causes our s/-mcpu=power8/-mcpu=power6/
+  to fail.
+  Related: rhbz#1443809
+
+* Wed Apr 19 2017 Peter Jones <pjones@redhat.com> - 2.02-0.59
+- Fix ppc64 "grub2.chrp" to be "grub.chrp" harder
+  Resolves: rhbz#1442970
+
+* Wed Apr 19 2017 Peter Jones <pjones@redhat.com> - 2.02-0.58
+- Add Aarch64 FDT #address-cells and #size-cells support
+  Resolves: rhbz#1436745
+- Fix ppc64 "grub2.chrp" to be "grub.chrp"
+  Resolves: rhbz#1442970
+
+* Wed Apr 12 2017 Peter Jones <pjones@redhat.com> - 2.02-0.57
+- Make "grub2" require the grub2-efi-... package on arches where there's no
+  legacy build.
+  Related: rhbz#1440787
+
+* Tue Apr 11 2017 Peter Jones <pjones@redhat.com> - 2.02-0.56
+- Rebuild in the right build root.
+  Related: rhbz#1437450
+
+* Tue Apr 11 2017 Peter Jones <pjones@redhat.com> - 2.02-0.55
+- Make a "grub2" top-level package to help solve Jira RCM-14929.
+  Related: rhbz#1437450
+
+* Mon Apr 10 2017 Peter Jones <pjones@redhat.com> - 2.02-0.54
+- Make grub2-pc, grub2-ppc64le, etc, also have an Obsoletes for the old grub2
+  packages.  Hoping this will solve Jira RCM-14929.
+  Related: rhbz#1437450
+
+* Thu Mar 30 2017 Peter Jones <pjones@redhat.com> - 2.02-0.53
+- Don't manually put an arch in a requires.
+  The automatically generated provides won't have it, and all of the
+  tools display the packages as if it were there, so you can't ever see
+  that they never match up. Meanwhile the auto generator *will* add
+  $name($arch)=$evr provides, which aren't quite the same.  We probably
+  don't need it anyway.  Maybe.
+  Resolves: rhbz#1437450
+
+* Thu Mar 30 2017 Peter Jones <pjones@redhat.com> - 2.02-0.52
+- Fix our debuginfo filter to not accidentally discard the stripped versions of
+  userland binaries.
+  Related: rhbz#1310763
+
+* Tue Mar 28 2017 Peter Jones <pjones@redhat.com> - 2.02-0.51
+- Also be sure to pull in grub2-tools-extras for now, to make upgrades work.
+  Related: rhbz#1310763
+
+* Tue Mar 28 2017 Peter Jones <pjones@redhat.com> - 2.02-0.50
+- Fix where the grub2-ofpathname man page lands
+  Related: rhbz#1310763
+- Fix stripping of userland binaries
+  Related: rhbz#1310763
+
+* Tue Mar 21 2017 Peter Jones <pjones@redhat.com> - 2.02-0.49
+- Include unicode.pf2 in the grub-efi-ARCH-cdboot images
+  Related: rhbz#1310763
+  Related: rhbz#1411748
+  Related: rhbz#1300009
+
+* Tue Mar 21 2017 Peter Jones <pjones@redhat.com> - 2.02-0.48
+- grub2-efi-* don't actually need to require grub2-tools-efi (i.e. the mac
+  tools), anaconda and lorax can know how to do that.
+  Related: rhbz#1310763
+  Related: rhbz#1411748
+  Related: rhbz#1300009
+
+* Mon Mar 20 2017 Peter Jones <pjones@redhat.com> - 2.02-0.47
+- Fix ia32 booting.
+  Related: rhbz#1310763
+  Related: rhbz#1411748
+  Related: rhbz#1300009
+
+* Fri Mar 17 2017 Peter Jones <pjones@redhat.com> - 2.02-0.46
+- Fix ppc* package names.
+  Related: rhbz#1310763
+  Related: rhbz#1411748
+  Related: rhbz#1300009
+
+* Wed Mar 15 2017 Peter Jones <pjones@redhat.com> - 2.02-0.45
+- Rework package to make multi-arch EFI easier.
+  Resolves: rhbz#1310763
+  Related: rhbz#1411748
+- Honor IO alignment on EFI systems
+  Resolves: rhbz#1300009
+
+* Mon Aug 29 2016 Peter Jones <pjones@redhat.com> - 2.02-0.44
+- Work around tftp servers that don't work with multiple consecutive slashes in
+  file paths.
+  Resolves: rhbz#1217243
+
+* Thu Aug 25 2016 Peter Jones <pjones@redhat.com> - 2.02-0.42
+- Make grub2-mkconfig export grub2-get-kernel-settings variables correctly.
   Related: rhbz#1226325
 
-* Thu Apr 07 2016 pjones <pjones@redhat.com> - 1:2.02-0.30
-- Revert 27e66193, which was replaced by upstream's 49426e9fd
-  Resolves: rhbz#1251600
+* Tue Aug 23 2016 Peter Jones <pjones@redhat.com> - 2.02-0.42
+- Rebuild in the right build root.  Again.
+  Related: rhbz#1273974
 
-* Thu Apr 07 2016 Peter Jones <pjones@redhat.com> - 2.02-0.29
-- Fix ppc64 build failure and rebase to newer f24 code.
+* Wed Jul 13 2016 Peter Jones <pjones@redhat.com> - 2.02-0.41
+- Build with coverity patch I missed last time.
+  Related: rhbz#1226325
 
-* Tue Apr 05 2016 pjones <pjones@redhat.com> - 1:2.02-0.27
-- Pull TPM updates from mjg59.
-  Resolves: rhbz#1318067
+* Wed Jul 13 2016 rmarshall@redhat.com - 2.02-0.40
+- Build with coverity patches.
+  Related: rhbz#1226325
 
-* Tue Mar 08 2016 pjones <pjones@redhat.com> - 1:2.02-0.27
-- Fix aarch64 build problem.
+* Wed Jul 13 2016 Peter Jones <pjones@redhat.com>
+- Remove our patch to force a paricular uefi network interface
+  Related: rhbz#1273974
+  Related: rhbz#1277599
+  Related: rhbz#1298765
+- Update some more coverity issues
+  Related: rhbz#1226325
+  Related: rhbz#1154226
 
-* Fri Mar 04 2016 Peter Jones <pjones@redhat.com> - 2.02-0.26
-- Rebased to newer upstream (grub-2.02-beta3) for fedora-24
+* Mon Jul 11 2016 rmarshall@redhat.com - 2.02-0.39
+- Fix all issues discovered during coverity scan. 
+  Related: rhbz#1154226
+- Fix a couple compiler and CLANG issues discovered during coverity scan.
+  Related: rhbz#1154226
+- Fix the last few CLANG issues and a deadcode issue discovered by the
+  coverity scan.
+  Related: rhbz#1154226
 
-* Thu Dec 10 2015 Peter Jones <pjones@redhat.com> - 2.02-0.25
-- Fix security issue when reading username and password
-  Related: CVE-2015-8370
-- Do a better job of handling GRUB2_PASSWORD
+* Fri Jul 01 2016 Peter Jones <pjones@redhat.com> - 2.02-0.38
+- Pick the right build target.  Again.
+  Related: rhbz#1226325
+
+* Tue Jun 21 2016 rmarshall@redhat.com - 2.02-0.37
+- Update fix for rhbz#1212114 to reflect the move to handling this case
+  in anaconda.
+  Related: rhbz#1315468
+  Resolves: rhbz#1261926
+- Add grub2-get-kernel-settings to allow grub2-mkconfig to take grubby
+  configuration changes into account.
+  Resolves: rhbz#1226325
+
+* Fri Jun 17 2016 Peter Jones <pjones@redhat.com> - 2.02-0.36
+- Better support for EFI network booting with dhcpv6.
+  Resolves: rhbz#1154226
+- Back out a duplicate change resulting in some EFI network firmware drivers
+  not working properly.
+  Related: rhbz#1273974
+  Related: rhbz#1277599
+  Related: rhbz#1298765
+
+* Mon Jun 06 2016 Peter Jones <pjones@redhat.com> - 2.02-0.35
+- Don't use legacy methods to make device node variables.
+  Resolves: rhbz#1279599
+- Don't pad initramfs with zeros
+  Resolves: rhbz#1219864
+
+* Thu Apr 28 2016 rmarshall@redhat.com 2.02-0.34
+- Exit grub-mkconfig with a proper code when the new configuration would be
+  invalid.
+  Resolves: rhbz#1252311
+- Warn users if grub-mkconfig needs to be run to add support for GRUB
+  passwords.
+  Resolves: rhbz#1290803
+- Fix the information in the --help and man pages for grub-setpassword
+  Resolves: rhbz#1290799
+- Fix issue where shell substitution expected non-translated output when
+  setting a bootloader password.
+  Resolves: rhbz#1294243
+- Fix an issue causing memory regions with unknown types to be marked available
+  through a series of backports from upstream.
+  Resolves: rhbz#1288608
+
+* Thu Dec 10 2015 Peter Jones <pjones@redhat.com> - 2.02-0.33
+- Don't remove 01_users, it's the wrong thing to do.
   Related: rhbz#1284370
 
-* Fri Nov 20 2015 Peter Jones <pjones@redhat.com> - 2.02-0.24
-- Rebuild without multiboot* modules in the EFI image.
-  Related: rhbz#1264103
+* Wed Dec 09 2015 Peter Jones <pjones@redhat.com> - 2.02-0.32
+- Rebuild for .z so the release number is different.
+  Related: rhbz#1284370
 
-* Sat Sep 05 2015 Kalev Lember <klember@redhat.com> - 2.02-0.23
-- Rebuilt for librpm soname bump
+* Wed Dec 09 2015 Peter Jones <pjones@redhat.com> - 2.02-0.31
+- More work on handling of GRUB2_PASSWORD
+  Resolves: rhbz#1284370
 
-* Wed Aug 05 2015 Peter Jones <pjones@redhat.com> - 2.02-0.21
-- Back out one of the debuginfo generation patches; it doesn't work right on
-  aarch64 yet.
-  Resolves: rhbz#1250197
+* Tue Dec 08 2015 Peter Jones <pjones@redhat.com> - 2.02-0.30
+- Fix security issue when reading username and password
+  Resolves: CVE-2015-8370
+- Do a better job of handling GRUB_PASSWORD
+  Resolves: rhbz#1284370
 
-* Mon Aug 03 2015 Peter Jones <pjones@redhat.com> - 2.02-0.20
-- The previous fix was completely not right, so fix it a different way.
-  Resolves: rhbz#1249668
+* Fri Oct 09 2015 Peter Jones <pjones@redhat.com> - 2.02-0.29
+- Fix DHCP6 timeouts due to failed network stack once more.
+  Resolves: rhbz#1267139
 
-* Fri Jul 31 2015 Peter Jones <pjones@redhat.com> - 2.02-0.19
-- Fix grub2-mkconfig's sort to put kernels in the right order.
+* Thu Sep 17 2015 Peter Jones <pjones@redhat.com> - 2.02-0.28
+- Once again, rebuild for the right build target.
+  Resolves: CVE-2015-5281
+
+* Thu Sep 17 2015 Peter Jones <pjones@redhat.com> - 2.02-0.27
+- Remove multiboot and multiboot2 modules from the .efi builds; they
+  should never have been there.
+  Resolves: CVE-2015-5281
+
+* Mon Sep 14 2015 Peter Jones <pjones@redhat.com> - 2.02-0.26
+- Be more aggressive about trying to make sure we use the configured SNP
+  device in UEFI.
+  Resolves: rhbz#1257475
+
+* Wed Aug 05 2015 Robert Marshall <rmarshall@redhat.com> - 2.02-0.25
+- Force file sync to disk on ppc64le machines.
+  Resolves: rhbz#1212114
+
+* Mon Aug 03 2015 Peter Jones <pjones@redhat.com> - 2.02-0.24
+- Undo 0.23 and fix it a different way.
+  Resolves: rhbz#1124074
+
+* Thu Jul 30 2015 Peter Jones <pjones@redhat.com> - 2.02-0.23
+- Reverse kernel sort order so they're displayed correctly.
+  Resolves: rhbz#1124074
+
+* Wed Jul 08 2015 Peter Jones <pjones@redhat.com> - 2.02-0.22
+- Make upgrades work reasonably well with grub2-setpassword .
+  Related: rhbz#985962
+
+* Tue Jul 07 2015 Peter Jones <pjones@redhat.com> - 2.02-0.21
+- Add a simpler grub2 password config tool
+  Related: rhbz#985962
+- Some more coverity nits.
+
+* Mon Jul 06 2015 Peter Jones <pjones@redhat.com> - 2.02-0.20
+- Deal with some coverity nits.
+  Related: rhbz#1215839
   Related: rhbz#1124074
 
-* Thu Jul 30 2015 Peter Jones <pjones@redhat.com> - 2.02-0.18
-- Fix a build failure on aarch64
+* Mon Jul 06 2015 Peter Jones <pjones@redhat.com> - 2.02-0.19
+- Rebuild for Aarch64
+- Deal with some coverity nits.
+  Related: rhbz#1215839
+  Related: rhbz#1124074
 
-* Wed Jul 22 2015 Peter Jones <pjones@redhat.com> - 2.02-0.17
-- Don't build hardened (fixes FTBFS) (pbrobinson)
-- Reconcile with the current upstream
-- Fixes for gcc 5
+* Thu Jul 02 2015 Peter Jones <pjones@redhat.com> - 2.02-0.18
+- Update for an rpmdiff problem with one of the man pages.
+  Related: rhbz#1124074
 
-* Tue Apr 28 2015 Peter Jones <pjones@redhat.com> - 2.02-0.16
-- Make grub2-mkconfig produce the kernel titles we actually want.
-  Resolves: rhbz#1215839
+* Tue Jun 30 2015 Peter Jones <pjones@redhat.com> - 2.02-0.17
+- Handle ipv6 better
+  Resolves: rhbz#1154226
+- On UEFI, use SIMPLE_NETWORK_PROTOCOL when we can.
+  Resolves: rhbz#1233378
+- Handle rssd disk drives in grub2 utilities.
+  Resolves: rhbz#1087962
+- Handle xfs CRC disk format.
+  Resolves: rhbz#1001279
+- Calibrate TCS using the EFI Stall service
+  Resolves: rhbz#1150698
+- Fix built-in gpg verification when using TFTP
+  Resolves: rhbz#1167977
+- Generate better stanza titles so grubby can find them easier.
+  Resolves: rhbz#1177003
+- Don't strip the fw_path variable twice when we're using EFI networking.
+  Resolves: rhbz#1211101
 
-* Sat Feb 21 2015 Till Maas <opensource@till.name>
-- Rebuilt for Fedora 23 Change
-  https://fedoraproject.org/wiki/Changes/Harden_all_packages_with_position-independent_code
+* Mon May 11 2015 Peter Jones <pjones@redhat.com> - 2.02-0.17
+- Document network boot paths better
+  Resolves: rhbz#1148650
+- Use an rpm-based version sorted in grub2-mkconfig
+  Resolves: rhbz#1124074
 
-* Mon Jan 05 2015 Peter Jones <pjones@redhat.com> - 2.02-0.15
-- Bump release to rebuild with Ralf Corsépius's fixes.
+* Thu Oct 09 2014 Peter Jones <pjones@redhat.com> - 2.02-0.16
+- ... and build it on the right target.
+  Related: rhbz#1148652
 
-* Sun Jan 04 2015 Ralf Corsépius <corsepiu@fedoraproject.org> - 2.02-0.14
-- Move grub2.info/grub2-dev.info install-info scriptlets into *-tools package.
-- Use sub-shell in %%__debug_install_post (RHBZ#1168732).
-- Cleanup grub2-starfield-theme packaging.
-
-* Thu Dec 04 2014 Peter Jones <pjones@redhat.com> - 2.02-0.13
-- Update minilzo to 2.08 for CVE-2014-4607
-  Resolves: rhbz#1131793
-
-* Thu Nov 13 2014 Peter Jones <pjones@redhat.com> - 2.02-0.12
-- Make backtrace and usb conditional on !arm
-- Make sure gcdaa64.efi is packaged.
-  Resolves: rhbz#1163481
-
-* Fri Nov 07 2014 Peter Jones <pjones@redhat.com> - 2.02-0.11
-- fix a copy-paste error in patch 0154.
-  Resolves: rhbz#964828
-
-* Mon Oct 27 2014 Peter Jones <pjones@redhat.com> - 2.02-0.10
-- Try to emit linux16/initrd16 and linuxefi/initrdefi when appropriate
-  in 30_os-prober.
-  Resolves: rhbz#1108296
-- If $fw_path doesn't work to find the config file, try $prefix as well
+* Thu Oct 09 2014 Peter Jones <pjones@redhat.com> - 2.02-0.15
+- Make netbooting do a better job of picking the config path *again*.
   Resolves: rhbz#1148652
 
-* Mon Sep 29 2014 Peter Jones <pjones@redhat.com> - 2.02-0.9
-- Clean up the build a bit to make it faster
-- Make grubenv work right on UEFI machines
-  Related: rhbz#1119943
-- Sort debug and rescue kernels later than normal ones
-  Related: rhbz#1065360
-- Allow "fallback" to include entries by title as well as number.
-  Related: rhbz#1026084
-- Fix a segfault on aarch64.
-- Load arm with SB enabled if available.
-- Add some serial port options to GRUB_MODULES.
+* Sat Oct 04 2014 Peter Jones <pjones@redhat.com> - 2.02-0.14
+- Be sure to *install* gcdaa64.efi
+  Related: rhbz#1100048
 
-* Tue Aug 19 2014 Peter Jones <pjones@redhat.com> - 2.02-0.8
-- Add ppc64le support.
-  Resolves: rhbz#1125540
+* Fri Sep 26 2014 Peter Jones <pjones@redhat.com> - 2.02-0.13
+- Make sure to build a gcdaa64.efi
+  Related: rhbz#1100048
 
-* Thu Jul 24 2014 Peter Jones <pjones@redhat.com> - 2.02-0.7
-- Enabled syslinuxcfg module.
+* Tue Sep 23 2014 Peter Jones <pjones@redhat.com> - 2.02-0.12
+- Fix minor problems rpmdiff found.
+  Related: rhbz#1125540
 
-* Wed Jul 02 2014 Peter Jones <pjones@redhat.com> - 2.02-0.6
-- Re-merge RHEL 7 changes and ARM works in progress.
+* Mon Sep 22 2014 Peter Jones <pjones@redhat.com> - 2.02-0.11
+- Fix grub2 segfault when root isn't set.
+  Resolves: rhbz#1084536
+- Make the aarch64 loader be SB-aware.
+  Related: rhbz#1100048
+- Enable regexp module
+  Resolves: rhbz#1125916
 
-* Mon Jun 30 2014 Peter Jones <pjones@redhat.com> - 2.02-0.5
-- Avoid munging raw spaces when we're escaping command line arguments.
-  Resolves: rhbz#923374
+* Thu Sep 04 2014 Peter Jones <pjones@redhat.com> - 2.02-0.10
+- Make editenv utilities (grub2-editenv, grub2-set-default, etc.) from
+  non-UEFI builds work with UEFI builds as well, since they're shared
+  from grub2-tools.
+  Resolves: rhbz#1119943
+- Make more grub2-mkconfig generate menu entries with the OS name and version
+  included.
+  Resolves: rhbz#996794
+- Minimize the sort ordering for .debug and -rescue- kernels.
+  Resolves: rhbz#1065360
+- Add GRUB_DISABLE_UUID to disable filesystem searching by UUID.
+  Resolves: rhbz#1027833
+- Allow "fallback" to specify titles like the documentation says
+  Resolves: rhbz#1026084
 
-* Tue Jun 24 2014 Peter Jones <pjones@redhat.com> - 2.02-0.4
-- Update to latest upstream.
+* Wed Aug 27 2014 Peter Jones <pjones@redhat.com> - 2.02-0.9.1
+- A couple of patches for aarch64 got missed.
+  Related: rhbz#967937
 
-* Thu Mar 13 2014 Peter Jones <pjones@redhat.com> - 2.02-0.3
-- Merge in RHEL 7 changes and ARM works in progress.
+* Wed Aug 27 2014 Peter Jones <pjones@redhat.com> - 2.02-0.9
+- Once again, I have built with the wrong target.
+  Related: rhbz#1125540
+  Resolves: rhbz#967937
+
+* Fri Aug 22 2014 Peter Jones <pjones@redhat.com> - 2.02-0.8
+- Add patches for ppc64le
+  Related: rhbz#1125540
+
+* Thu Mar 20 2014 Peter Jones <pjones@redhat.com> - 2.02-0.2.10
+- Fix GRUB_DISABLE_SUBMENU one more time.
+  Resolves: rhbz#1063414
+
+* Tue Mar 18 2014 Peter Jones <pjones@redhat.com> - 2.02-0.2.9
+- Not sure why the right build target wasn't used *again*.
+  Resolves: rhbz#1073337
+
+* Wed Mar 12 2014 Peter Jones <pjones@redhat.com> - 2.02-0.2.8
+- Make GRUB_DISABLE_SUBMENU work again.
+  Resolves: rhbz#1063414
+
+* Thu Mar 06 2014 Peter Jones <pjones@redhat.com> - 2.02-0.2.7
+- Build on the right target.
+  Resolves: rhbz#1073337
+
+* Wed Mar 05 2014 Peter Jones <pjones@redhat.com> - 2.02-0.2.6
+- Fix minor man page install bug
+  Related: rhbz#948847
+
+* Tue Mar 04 2014 Peter Jones <pjones@redhat.com> - 2.02-0.2.5
+- Add man pages for common grub utilities.
+  Resolves: rhbz#948847
+- Fix shift key behavior on UEFI.
+  Resolves: rhbz#1068215
+
+* Tue Feb 18 2014 Peter Jones <pjones@redhat.com> - 2.02-0.2.4
+- Build against the right target.
+  Related: rhbz#1064424
+
+* Tue Feb 18 2014 Peter Jones <pjones@redhat.com> - 2.02-0.2.3
+- Don't emit "Booting <foo>" message.
+  Resolves: rhbz#1023142
+- Don't require a password for booting, only for editing entries.
+  Resolves: rhbz#1030176
+- Several network fixes from IBM
+  Resolves: rhbz#1056324
+- Support NVMe device names
+  Resolves: rhbz#1019660
+- Make control keys work on UEFI systems.
+  Resolves: rhbz#1056035
+
+* Fri Jan 31 2014 Peter Jones <pjones@redhat.com> - 2.02-0.2.2
+- Fix FORTIFY_SOURCE for util/
+  Related: rhbz#1049047
+
+* Tue Jan 21 2014 Peter Jones <pjones@redhat.com> - 2.02-0.2.1
+- Don't destroy symlinks when re-writing grub.cfg
+  Resolves: rhbz#1032182
 
 * Mon Jan 06 2014 Peter Jones <pjones@redhat.com> - 2.02-0.2
 - Update to grub-2.02~beta2
 
-* Sat Aug 10 2013 Peter Jones <pjones@redhat.com> - 2.00-25
-- Last build failed because of a hardware error on the builder.
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 1:2.00-23
+- Mass rebuild 2013-12-27
 
-* Mon Aug 05 2013 Peter Jones <pjones@redhat.com> - 2.00-24
-- Fix compiler flags to deal with -fstack-protector-strong
+* Wed Nov 20 2013 Peter Jones <pjones@redhat.com> - 2.00-22.10
+- Rebuild with correct release number and with correct target.
+  Related: rhbz#1032530
 
-* Sat Aug 03 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 1:2.00-24
-- Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
+* Wed Nov 20 2013 Daniel Mach <dmach@redhat.com> - 2.00-22.9.1
+- Enable tftp module
+  Resolves: rhbz#1032530
 
-* Tue Jul 02 2013 Dennis Gilmore <dennis@ausil.us> - 2.00-23
-- add epoch to obsoletes
+* Thu Nov 14 2013 Peter Jones <pjones@redhat.com> - 2.00-22.9
+- Make "linux16" happen on x86_64 machines as well.
+  Resolves: rhbz#880840
+
+* Wed Nov 06 2013 Peter Jones <pjones@redhat.com> - 2.00-22.8
+- Rebuild with correct build target for signing.
+  Related: rhbz#996863
+
+* Tue Nov 05 2013 Peter Jones <pjones@redhat.com> - 2.00-22.7
+- Build with -mcpu=power6 as we did before redhat-rpm-config changed
+  Resolves: rhbz#1026368
+
+* Thu Oct 31 2013 Peter Jones <pjones@redhat.com> - 2.00-22.6
+- Make linux16 work with the shell better.
+  Resolves: rhbz#880840
+
+* Thu Oct 31 2013 Peter Jones <pjones@redhat.com> - 2.00-22.5
+- Rebuild because we were clobbering signing in the spec file...
+  Related: rhbz#1017855
+
+* Thu Oct 31 2013 Peter Jones <pjones@redhat.com> - 2.00-22.4
+- Rebuild because signing didn't work.
+  Related: rhbz#1017855
+
+* Mon Oct 28 2013 Peter Jones <pjones@redhat.com> - 2.00-22.3
+- Use linux16 when appropriate:
+  Resolves: rhbz#880840
+- Enable pager by default:
+  Resolves: rhbz#985860
+- Don't ask the user to hit keys that won't work.
+  Resolves: rhbz#987443
+- Sign grub2 during builds
+  Resolves: rhbz#1017855
+
+* Thu Aug 29 2013 Peter Jones <pjones@redhat.com> - 2.00-22.2
+- Fix minor rpmdiff complaints.
+
+* Wed Aug 07 2013 Peter Jones <pjones@redhat.com> - 2.00-22.1
+- Fix url so PkgWrangler doesn't go crazy.
 
 * Fri Jun 21 2013 Peter Jones <pjones@redhat.com> - 2.00-22
 - Fix linewrapping in edit menu.
@@ -1579,8 +1344,8 @@ fi
   update README.Fedora (#734090)
   fix comments for the hack for upgrading from grub2 < 1.99-4
   fix sed syntax error preventing use of $RPM_OPT_FLAGS (#704820)
-  make /etc/grub2*.cfg %%config(noreplace)
-  make grub.cfg %%ghost - an empty file is of no use anyway
+  make /etc/grub2*.cfg %config(noreplace)
+  make grub.cfg %ghost - an empty file is of no use anyway
   create /etc/default/grub more like anaconda would create it (#678453)
   don't create rescue entries by default - grubby will not maintain them anyway
   set GRUB_SAVEDEFAULT=true so saved defaults works (rbhz#732058)
@@ -1616,7 +1381,7 @@ fi
 - Fix upgrades from grub2 < 1.99-4 (#735259)
 
 * Fri Sep 02 2011 Peter Jones <pjones@redhat.com> - 1.99-4
-- Don't do sysadminny things in %%preun or %%post ever. (#735259)
+- Don't do sysadminny things in %preun or %post ever. (#735259)
 - Actually include the changelog in this build (sorry about -3)
 
 * Thu Sep 01 2011 Peter Jones <pjones@redhat.com> - 1.99-2
