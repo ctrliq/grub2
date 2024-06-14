@@ -6,7 +6,7 @@
 Name:           grub2
 Epoch:          1
 Version:        2.02
-Release:        0.87%{?dist}%{?buildid}.14
+Release:        0.87%{?dist}%{?buildid}.15
 Summary:        Bootloader with support for Linux, Multiboot and more
 Group:          System Environment/Base
 License:        GPLv3+
@@ -22,6 +22,21 @@ Source6:	redhatsecureboot301.cer
 Source7:	redhatsecurebootca5.cer
 Source8:	redhatsecureboot502.cer
 Source9:	sbat.csv.in
+
+# CIQ secureboot relevant sources and macros:
+#############
+Source1101: ciq_sbsign.macros
+Source1102: ciq_sb_grub2.crt
+Source1103: ciq_sb_ca.der
+
+%define  sb_cer  %{SOURCE1102}
+%define  sb_key  ciq_sb_grub2
+%define  sb_ca  %{SOURCE1103}
+
+# Include CIQ secureboot macro pesign override:
+%include  %{SOURCE1101}
+#############################
+
 
 %include %{SOURCE1}
 
@@ -153,11 +168,14 @@ sed -e "s,@@VERSION@@,%{evr},g" %{SOURCE9} \
 %endif
 
 %build
+# CIQ Note:  pass the same secureboot certs twice to do_primary_efi_build(): arguments %6 %7 %8 and %9 %10 %11 should be identical : ca file, cert, key name.
+# This is because the original CentOS secureboot has 2 CAs due to legacy reasons.  Rather than change all the macros these arguments get passd through, we just 
+# ignore the final 3 when signing happens in mkimage()
 %if 0%{with_efi_arch}
-%do_primary_efi_build %{grubefiarch} %{grubefiname} %{grubeficdname} %{_target_platform} "'%{efi_cflags}'" %{SOURCE5} %{SOURCE6} redhatsecureboot301 %{SOURCE7} %{SOURCE8} redhatsecureboot502
+%do_primary_efi_build %{grubefiarch} %{grubefiname} %{grubeficdname} %{_target_platform} "'%{efi_cflags}'" %{sb_ca} %{sb_cer} %{sb_key} %{sb_ca} %{sb_cer} %{sb_key}
 %endif
 %if 0%{with_alt_efi_arch}
-%do_alt_efi_build %{grubaltefiarch} %{grubaltefiname} %{grubalteficdname} %{_alt_target_platform} "'%{alt_efi_cflags}'" %{SOURCE5} %{SOURCE6} redhatsecureboot301 %{SOURCE7} %{SOURCE8} redhatsecureboot502
+%do_alt_efi_build %{grubaltefiarch} %{grubaltefiname} %{grubalteficdname} %{_alt_target_platform} "'%{alt_efi_cflags}'" %{sb_ca} %{sb_cer} %{sb_key} %{sb_ca} %{sb_cer} %{sb_key}
 %endif
 %if 0%{with_legacy_arch}%{with_legacy_utils}
 %do_legacy_build %{grublegacyarch}
@@ -469,6 +487,9 @@ fi
 %endif
 
 %changelog
+* Thu Jun 13 2024 Skip Grube <sgrube@ciq.com> - 2.02-087.el7.15
+- Converted to CIQ certs and macros for secure boot builds
+
 * Thu Feb 1 2024 Nicolas Frayer <nfrayer@redhat.com> - 2.02-087.el7.14
 - Rebuild for signing
 - Related: RHEL-23460
