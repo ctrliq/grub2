@@ -6,7 +6,7 @@
 Name:           grub2
 Epoch:          1
 Version:        2.02
-Release:        0.87%{?dist}%{?buildid}.15
+Release:        0.88%{?dist}%{?buildid}.0
 Summary:        Bootloader with support for Linux, Multiboot and more
 Group:          System Environment/Base
 License:        GPLv3+
@@ -487,7 +487,7 @@ fi
 %endif
 
 %changelog
-* Thu Jun 13 2024 Skip Grube <sgrube@ciq.com> - 2.02-087.el7.15
+* Thu Jun 13 2024 Skip Grube <sgrube@ciq.com> - 2.02-088.el7.0
 - Converted to CIQ certs and macros for secure boot builds
 
 * Thu Feb 1 2024 Nicolas Frayer <nfrayer@redhat.com> - 2.02-087.el7.14
