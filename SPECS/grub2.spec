@@ -154,11 +154,16 @@ This subpackage provides tools for support of all platforms.
 
 %prep
 %setup -T -c -n grub-%{tarversion}
+
+%global upstreamDist .el7_9
+#Define RHEL release (stripped out ciq/rocky dist info).  Needed for SBAT entries for RHEL: 
+%global sbatrhelrelease  %(echo '%{release}' | sed 's,%{dist},%{upstreamDist},' | sed 's,\.rocky\..*$,,' | sed 's,\.ciq\..*$,,') 
 %do_common_setup
 %if 0%{with_efi_arch}
 %do_setup %{grubefiarch}
-sed -e "s,@@VERSION@@,%{evr},g" %{SOURCE9} \
-	> grub-%{grubefiarch}-%{tarversion}/sbat.csv
+sed -e "s,@@VERSION@@,%{version},g" -e "s,@@VERSION_RELEASE@@,%{version}-%{release},g" -e "s,@@VERSION_RHEL_RELEASE@@,%{version}-%{sbatrhelrelease},g" -e "s,@@VERSION_RESF_RELEASE@@,%{version}-%{sbatresfrelease},g" \
+    -e '/,Red Hat,/ s,\.rocky\.[0-9]\.[0-9],,g' %{SOURCE9} > grub-%{grubefiarch}-%{tarversion}/sbat.csv
+
 %endif
 %if 0%{with_alt_efi_arch}
 %do_setup %{grubaltefiarch}

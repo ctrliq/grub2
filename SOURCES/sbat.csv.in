@@ -1,4 +1,4 @@
 sbat,1,SBAT Version,sbat,1,https://github.com/rhboot/shim/blob/main/SBAT.md
 grub,3,Free Software Foundation,grub,2.02,https://www.gnu.org/software/grub/
-grub.rhel7,2,Red Hat Enterprise Linux 7,grub2,@@VERSION@@,mail:secalert@redhat.com
-grub.ciq_centos7,1,Centos Linux 7 (CIQ build),grub2,@@VERSION@@,mailto:secureboot@ciq.com
+grub.rhel7,2,Red Hat Enterprise Linux 7,grub2,@@VERSION_RHEL_RELEASE@@,mail:secalert@redhat.com
+grub.ciq_centos7,1,Centos Linux 7 (CIQ build),grub2,@@VERSION_RELEASE@@,mailto:secureboot@ciq.com
