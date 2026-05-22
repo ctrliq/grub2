@@ -296,11 +296,14 @@ makeinfo --html --no-split -I docs -o docs/grub.html		\\\
 cd ..								\
 %{nil}
 
+# the odd CFLAGS line is because we had to turn spaces into pounds ("#")
+# The macro turns them back into spaces when defined here
 %define do_efi_configure()					\
+%define tmp_cflags %(echo '%{2}' | tr '#' ' ') \
 ./autogen.sh							\
 %configure							\\\
 	%{cc_equals}						\\\
-	CFLAGS="%{2}"						\\\
+	CFLAGS="%{tmp_cflags}"						\\\
 	TARGET_LDFLAGS=-static					\\\
         --with-platform=efi					\\\
 	--target=%{1}						\\\

@@ -6,7 +6,7 @@
 Name:           grub2
 Epoch:          1
 Version:        2.02
-Release:        0.88%{?dist}%{?buildid}.0
+Release:        0.88%{?dist}%{?buildid}.2
 Summary:        Bootloader with support for Linux, Multiboot and more
 Group:          System Environment/Base
 License:        GPLv3+
@@ -25,17 +25,12 @@ Source9:	sbat.csv.in
 
 # CIQ secureboot relevant sources and macros:
 #############
-Source1101: ciq_sbsign.macros
 Source1102: ciq_sb_grub2.crt
 Source1103: ciq_sb_ca.der
 
 %define  sb_cer  %{SOURCE1102}
 %define  sb_key  ciq_sb_grub2
 %define  sb_ca  %{SOURCE1103}
-
-# Include CIQ secureboot macro pesign override:
-%include  %{SOURCE1101}
-#############################
 
 
 %include %{SOURCE1}
@@ -63,9 +58,15 @@ BuildRequires:	freetype-devel gettext-devel git
 BuildRequires:	texinfo
 BuildRequires:	dejavu-sans-fonts
 BuildRequires:	help2man
-%ifarch %{efi_arch}
-BuildRequires:	pesign >= 0.99-8
+
+# If this is an official signed secureboot build, we need "pesign" (provided by custom sbsigntools package)
+# Unsigned builds get stock pesign package ("/usr/bin/pesign") so everything works ok there
+%if 0%{?pe_signing_certkeyslot:1}
+BuildRequires: pesign >= 0.106-5
+%else
+BuildRequires: /usr/bin/pesign
 %endif
+
 %if %{?_with_ccache: 1}%{?!_with_ccache: 0}
 BuildRequires:  ccache
 %endif
@@ -78,6 +79,13 @@ Requires:	%{name}-%{legacy_package_arch} = %{evr}
 %else
 Requires:	%{name}-%{package_arch} = %{evr}
 %endif
+
+# Workaround:
+# we need to pass a no-spaces argument to do_primary_efi_build.  Peridot does imports using an EL8 srpm build which doesn't allow this,
+# while also doing the real srpm build with el7 which does.  TO work around it we'll use a delimiter ("#") that is not spaces, then turn it back into spaces
+%global tmp_efi_cflags %(echo "%{efi_cflags}" | tr ' ' '#')
+%global tmp_alt_efi_cflags %(echo "%{efi_cflags}" | sed -e 's/-m64//g' | tr ' ' '#')
+
 
 %global desc \
 The GRand Unified Bootloader (GRUB) is a highly configurable and \
@@ -152,6 +160,7 @@ This subpackage provides tools for support of all platforms.
 %define_legacy_variant %{legacy_package_arch}
 %endif
 
+
 %prep
 %setup -T -c -n grub-%{tarversion}
 
@@ -176,11 +185,12 @@ sed -e "s,@@VERSION@@,%{version},g" -e "s,@@VERSION_RELEASE@@,%{version}-%{relea
 # CIQ Note:  pass the same secureboot certs twice to do_primary_efi_build(): arguments %6 %7 %8 and %9 %10 %11 should be identical : ca file, cert, key name.
 # This is because the original CentOS secureboot has 2 CAs due to legacy reasons.  Rather than change all the macros these arguments get passd through, we just 
 # ignore the final 3 when signing happens in mkimage()
+
 %if 0%{with_efi_arch}
-%do_primary_efi_build %{grubefiarch} %{grubefiname} %{grubeficdname} %{_target_platform} "'%{efi_cflags}'" %{sb_ca} %{sb_cer} %{sb_key} %{sb_ca} %{sb_cer} %{sb_key}
+%do_primary_efi_build %{grubefiarch} %{grubefiname} %{grubeficdname} %{_target_platform} %{tmp_efi_cflags} %{sb_ca} %{sb_cer} %{sb_key} %{sb_ca} %{sb_cer} %{sb_key}
 %endif
 %if 0%{with_alt_efi_arch}
-%do_alt_efi_build %{grubaltefiarch} %{grubaltefiname} %{grubalteficdname} %{_alt_target_platform} "'%{alt_efi_cflags}'" %{sb_ca} %{sb_cer} %{sb_key} %{sb_ca} %{sb_cer} %{sb_key}
+%do_alt_efi_build %{grubaltefiarch} %{grubaltefiname} %{grubalteficdname} %{_alt_target_platform} %{tmp_alt_efi_cflags} %{sb_ca} %{sb_cer} %{sb_key} %{sb_ca} %{sb_cer} %{sb_key}
 %endif
 %if 0%{with_legacy_arch}%{with_legacy_utils}
 %do_legacy_build %{grublegacyarch}
@@ -492,6 +502,22 @@ fi
 %endif
 
 %changelog
+* Thu Feb 26 2026 CIQ Security <secureboot@ciq.com> - 1:2.02-0.88.el7.2
+- Backport grub2 2024-2025 CVE fixes (20 CVEs total)
+- SBAT grub,4 baseline (Oct 2023): CVE-2023-4692 CVE-2023-4693
+- SBAT grub,5 additions (Feb 2025): 18 new CVEs below
+- Resolves: CVE-2024-45774 CVE-2024-45775 CVE-2024-45776 CVE-2024-45777
+- Resolves: CVE-2024-45778 CVE-2024-45779 CVE-2024-45780 CVE-2024-45781
+- Resolves: CVE-2024-45782 CVE-2024-45783 CVE-2025-0622 CVE-2025-0677
+- Resolves: CVE-2025-0678 CVE-2025-0684 CVE-2025-0685 CVE-2025-0686
+- Resolves: CVE-2025-0689 CVE-2025-0690 CVE-2025-1118 CVE-2025-1125
+- Note: CVE-2025-0624 not applicable to EL7 2.02 (function does not exist)
+- Bump upstream SBAT grub: 4->5 (CVE fix batch; vendor entries unchanged)
+- Removal of the SB Sign macros as these are no longer needed with the new CIQ secureboot signing process
+
+* Wed Nov 13 2024 Skip Grube <sgrube@ciq.com> - 2.02-088.el7.1
+- Corrected secure boot macros, ensuring EL7 build environment compatibility (no code changes)
+
 * Thu Jun 13 2024 Skip Grube <sgrube@ciq.com> - 2.02-088.el7.0
 - Converted to CIQ certs and macros for secure boot builds
 
