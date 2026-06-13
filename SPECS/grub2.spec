@@ -16,7 +16,7 @@
 Name:                 grub2
 Epoch:                1
 Version:              2.06
-Release:              77%{?dist}
+Release:              114%{?dist}.ciq.0.1
 Summary:              Bootloader with support for Linux, Multiboot and more
 License:              GPLv3+
 URL:                  http://www.gnu.org/software/grub/
@@ -34,37 +34,55 @@ Source9:              strtoull_test.c
 Source10:             20-grub.install
 Source11:             grub.patches
 Source12:             sbat.csv.in
+Source13:             gen_grub_cfgstub
 
-Source1101: ciq_sbsign.macros
-Source1102: ciq_sb_grub2.crt
-Source1103: ciq_sb_ca.der
+Source1101:           ciq_sbsign.macros
+Source1102:           ciq_sb_grub2.crt
+Source1103:           ciq_sb_ca.der
+Source1104:           ciq_sb_grub2_aarch64.crt
 
 
-
-%include  %{SOURCE1101}
-%include  %{SOURCE1}
+%include %{SOURCE1101}
+%include %{SOURCE1}
 
 %ifarch x86_64 aarch64 ppc64le
-%define  sb_ca  %{SOURCE1103}
-# (disabled) 		%{_datadir}/pki/sb-certs/secureboot-ca-%{_arch}.cer
-%define  sb_cer  %{SOURCE1102}
-# (disabled) 		%{_datadir}/pki/sb-certs/secureboot-grub2-%{_arch}.cer
+%define sb_ca		%{SOURCE1103}
+# (define)		%{_datadir}/pki/sb-certs/secureboot-ca-%{_arch}.cer
+%ifarch x86_64
+%define sb_cer		%{SOURCE1102}
+%endif
+%ifarch aarch64
+%define sb_cer		%{SOURCE1104}
+%endif
+%ifarch ppc64le		%{_datadir}/pki/sb-certs/secureboot-grub2-%{_arch}.cer
+%endif
 %endif
 
 %if 0%{?centos}
 
 %ifarch x86_64 aarch64 ppc64le
-%define  sb_key  ciq_sb_grub2
-# (disabled) 		rockylinuxsecurebootkey
+%ifarch x86_64
+%define sb_key		ciq_sb_grub2
+%endif
+%ifarch aarch64
+%define sb_key		ciq_sb_grub2_aarch64
+%endif
+%ifarch ppc64le
+%define sb_key		rockylinuxsecurebootkey
+%endif
 %endif
 %else
 %ifarch x86_64 aarch64
-%define  sb_key  ciq_sb_grub2
-# (disabled) 		rockylinuxsecurebootkey
+%ifarch x86_64
+%define sb_key		ciq_sb_grub2
+%endif
+%ifarch aarch64
+%define sb_key		ciq_sb_grub2_aarch64
+%endif
+# (define)		redhatsecureboot802
 %endif
 %ifarch ppc64le
-%define  sb_key  ciq_sb_grub2
-# (disabled) 		rockylinuxsecurebootkey
+%define sb_key		rockylinuxsecurebootkey
 %endif
 
 %endif
@@ -195,9 +213,9 @@ Requires:             %{name}-tools-minimal = %{epoch}:%{version}-%{release}
 This subpackage provides the GRUB user-space emulation modules.
 %endif
 
-%prep 
-%global upstreamDist .el9_0
- 
+%prep
+%global upstreamDist .el9
+
 #Define RHEL release (stripped out ciq/rocky dist info) and Rocky release (stripped out CIQ info) respectively.  Needed for SBAT entries for RHEL and RESF: 
 %global sbatrhelrelease  %(echo '%{release}' | sed 's,%{dist},%{upstreamDist},' | sed 's,\.rocky\..*$,,' | sed 's,\.ciq\..*$,,') 
 %global sbatresfrelease  %(echo '%{release}' | sed 's,%{dist},%{upstreamDist},' | sed 's,\.ciq\.,\.rocky\.,')
@@ -353,34 +371,38 @@ if ! mountpoint -q ${ESP_PATH}; then
     exit 0 # no ESP mounted, nothing to do
 fi
 
-if test ! -f ${EFI_HOME}/grub.cfg; then
-    # there's no config in ESP, create one
-    grub2-mkconfig -o ${EFI_HOME}/grub.cfg
+if test ! -f ${GRUB_HOME}/grub.cfg; then
+    # there's no config in GRUB home, create one
+    grub2-mkconfig -o ${GRUB_HOME}/grub.cfg
+else
+    GRUB_CFG_MODE=$(stat --format="%a" ${GRUB_HOME}/grub.cfg)
+    if ! test "${GRUB_CFG_MODE}" = "600"; then
+        # when upgrading from <=2.06-90 to newer versions, the grub config stub
+        # may have different mode than 0600, so set the latter if this is the case
+        chmod 0600 ${GRUB_HOME}/grub.cfg
+    fi
 fi
 
-if grep -q "configfile" ${EFI_HOME}/grub.cfg; then
-    exit 0 # already unified, nothing to do
+# make sure grub.cfg is present before grepping it
+if test -f ${EFI_HOME}/grub.cfg; then
+    # need to move grub.cfg to correct dir for major version upgrade
+    if ! grep -q "configfile" ${EFI_HOME}/grub.cfg; then
+        cp -a ${EFI_HOME}/grub.cfg ${GRUB_HOME}/
+        chmod 0600 ${GRUB_HOME}/grub.cfg
+    fi
+
+    if grep -q "configfile" ${EFI_HOME}/grub.cfg && grep -q "root-dev-only" ${EFI_HOME}/grub.cfg; then
+        exit 0 # already unified, nothing to do
+    fi
 fi
 
 # create a stub grub2 config in EFI
-BOOT_UUID=$(%{name}-probe --target=fs_uuid ${GRUB_HOME})
-GRUB_DIR=$(%{name}-mkrelpath ${GRUB_HOME})
-
-cat << EOF > ${EFI_HOME}/grub.cfg.stb
-search --no-floppy --root-dev-only --fs-uuid --set=dev ${BOOT_UUID}
-set prefix=(\$dev)${GRUB_DIR}
-export \$prefix
-configfile \$prefix/grub.cfg
-EOF
+gen_grub_cfgstub $GRUB_HOME $EFI_HOME || :
 
 if test -f ${EFI_HOME}/grubenv; then
     cp -a ${EFI_HOME}/grubenv ${EFI_HOME}/grubenv.rpmsave
     mv --force ${EFI_HOME}/grubenv ${GRUB_HOME}/grubenv
 fi
-
-cp -a ${EFI_HOME}/grub.cfg ${EFI_HOME}/grub.cfg.rpmsave
-cp -a ${EFI_HOME}/grub.cfg ${GRUB_HOME}/
-mv ${EFI_HOME}/grub.cfg.stb ${EFI_HOME}/grub.cfg
 
 %files common -f grub.lang
 %dir %{_libdir}/grub/
@@ -551,17 +573,176 @@ mv ${EFI_HOME}/grub.cfg.stb ${EFI_HOME}/grub.cfg
 %endif
 
 %changelog
-* Tue May 07 2024 Jason Rodriguez <jrodriguez@ciq.com> - 2.06-77
+* Thu Feb 12 2026 Linux Engineering <le-team@ciq.com> - 2.06-114
 - Porting Rocky 9 secureboot grub2 to CIQ build and sign
 
-* Wed May 01 2024 Release Engineering <releng@rockylinux.org> - 2.06-77
+* Wed Nov 12 2025 Release Engineering <releng@rockylinux.org> - 2.06-114.0.1
 - Removing redhat old cert sources entries (Sherif Nagy)
 - Preserving rhel9 sbat entry based on shim-review feedback ticket no. 194
 - Adding prod cert
-- Porting to 9.4
+- Porting to Rocky Linux 9
 - Cleaning up grup.macro extra signing certs
 - Adding Rocky testing CA, CERT and sbat files
 - Use DER for ppc64le builds from rocky-sb-certs (Louis Abel)
+
+* Wed Oct 8 2025 Nicolas Frayer <nfrayer@redhat.com> 2.06-114
+- spec: Update signing key to redhatsecureboot802
+- Resolves: #RHEL-116729
+
+* Thu Aug 7 2025 Nicolas Frayer <nfrayer@redhat.com> 2.06-113
+- sbat: add new sbat entry for centos
+- Resolves: #RHEL-108060
+
+* Tue Jul 29 2025 Leo Sandoval <lsandova@redhat.com> 2.06-112
+- Set correctly the memory attributes for the kernel PE sections
+- Resolves: #RHEL-106075
+
+* Tue Jul 29 2025 Nicolas Frayer <nfrayer@redhat.com> 2.06-111
+- spec/posttrans: move grub config stub creation out of spec
+- Resolves: #RHEL-69944
+
+* Fri Jun 6 2025 Nicolas Frayer <nfrayer@redhat.com> - 2.06-110
+- osdep/linux/getroot: Detect DDF container similar to IMSM
+- Resolves: #RHEL-44336
+
+* Mon Jun 2 2025 Leo Sandoval <lsandova@redhat.com> 2.06-109
+- Handle special kernel parameter characters properly
+- Resolves: #RHEL-64297
+
+* Wed May 21 2025 Nicolas Frayer <nfrayer@redhat.com> - 2.06-108
+- ieee1275: Appended signature support
+- Resolves: #RHEL-24742
+
+* Wed May 14 2025 Nicolas Frayer <nfrayer@redhat.com> - 2.06-107
+- Remove BLS fake config in case of kernel removal
+- Resolves: #RHEL-83915
+
+* Wed May 14 2025 Nicolas Frayer <nfrayer@redhat.com> - 2.06-106
+- sbat: bump grub sbat for new shim release
+- Resolves: #RHEL-91278
+
+* Tue Apr 15 2025 Nicolas Frayer <nfrayer@redhat.com> - 2.06-105
+- ppc/mkimage: SBAT support on powerpc
+- Resolves: #RHEL-87421
+
+* Thu Apr 3 2025 Nicolas Frayer <nfrayer@redhat.com> 2.06-104
+- fs/xfs: Sync with latest xfs upstream
+- Resolves: #RHEL-85960
+- (NVR bump to catch up with zstream)
+
+* Tue Mar 25 2025 Nicolas Frayer <nfrayer@redhat.com> 2.06-100
+- ieee1275/ofnet: Fix grub_malloc() removed after added safe
+- Resolves: #RHEL-83117
+
+* Mon Mar 17 2025 Nicolas Frayer <nfrayer@redhat.com> 2.06-99
+- Added the following 2 commits to optimize memory consumption
+- tpm: Disable the tpm verifier if the TPM device is not present
+- powerpc: increase MIN RMA size for CAS negotiation
+- Resolves: #RHEL-76558
+
+* Mon Mar 10 2025 Leo Sandoval <lsandova@redhat.com> 2.06-98
+- Remove 'fs/ntfs: Implement attribute verification' patch
+- Related: RHEL-83117
+
+* Wed Feb 26 2025 Nicolas Frayer <nfrayer@redhat.com> - 2.06-97
+- fs/ext2: Rework out-of-bounds read for inline and external extents
+- Related: RHEL-79857
+
+* Wed Feb 12 2025 Nicolas Frayer <nfrayer@redhat.com> - 2.06-96
+- Fixes for several CVEs
+- Resolves: CVE-2024-45779 CVE-2024-45778 CVE-2025-1118
+- Resolves: CVE-2025-0677 CVE-2024-45782 CVE-2025-0690
+- Resolves: CVE-2024-45783 CVE-2025-0624 CVE-2024-45776
+- Resolves: CVE-2025-0622 CVE-2024-45774 CVE-2024-45775
+- Resolves: CVE-2024-45781 CVE-2024-45780
+- Resolves: #RHEL-79700
+- Resolves: #RHEL-79341
+- Resolves: #RHEL-79875
+- Resolves: #RHEL-79849
+- Resolves: #RHEL-79707
+- Resolves: #RHEL-79857
+- Resolves: #RHEL-79709
+- Resolves: #RHEL-79846
+- Resolves: #RHEL-75737
+- Resolves: #RHEL-79713
+- Resolves: #RHEL-73785
+- Resolves: #RHEL-73787
+- Resolves: #RHEL-79704
+- Resolves: #RHEL-79702
+
+* Mon Jan 13 2025 Nicolas Frayer <nfrayer@redhat.com> - 2.06-95
+- kern/ieee1275/init: Add IEEE 1275 Radix support for KVM on Power
+- Resolves: #RHEL-52761
+
+* Thu Nov 21 2024 Leo Sandoval <lsandova@redhat.com> - 2.06-94
+- 10_linux.in: escape semicolon and ampersand on BLS upddate
+- Resolves: #RHEL-25558
+
+* Wed Oct 16 2024 Nicolas Frayer <nfrayer@redhat.com> 2.06-93
+- cmd/search: Fix a possible NULL ptr dereference
+- Resolves: #RHEL-61263
+
+* Tue Aug 13 2024 Nicolas Frayer <nfrayer@redhat.com> - 2.06-92
+- arm64/linux: Allocate memory for kernel with EFI_LOADER_CODE type
+- Resolves: #RHEL-49868
+
+* Fri Aug 2 2024 Leo Sandoval <lsandova@redhat.com> - 2.06-91
+- Set /boot/grub2/grub.cfg to 0600 mode if present
+- Resolves: #RHEL-45870
+
+* Thu Aug 1 2024 Nicolas Frayer <nfrayer@redhat.com> - 2.06-90
+- grub2-mkconfig: Remove mountpoint check
+- Related: #RHEL-32099
+
+* Thu Aug 1 2024 Leo Sandoval <lsandova@redhat.com> - 2.06-89
+- Bump release number
+- Resolves: #RHEL-45870
+
+* Wed Jul 31 2024 Leo Sandoval <lsandova@redhat.com> - 2.06-88
+- grub.cfg: Fix rpm grub.cfg verification issues
+- Resolves: #RHEL-45870
+
+* Wed Jul 31 2024 Andrew Lukoshko <alukoshko@almalinux.org> - 2.06-87
+- grub2-mkconfig: Simplify os_name detection
+- Resolves: #RHEL-32099
+
+* Tue Jul 16 2024 Nicolas Frayer <nfrayer@redhat.com> - 2.06-86
+- chainloader: Remove unexpected "/EndEntire"
+- Resolves: #RHEL-4380
+
+* Tue Jul 16 2024 Nicolas Frayer <nfrayer@redhat.com> - 2.06-85
+- grub2-mkconfig: Prevent mkconfig from overwriting grub cfg stub
+- Resolves: #RHEL-32099
+
+* Thu Jul 11 2024 Nicolas Frayer <nfrayer@redhat.com> - 2.06-84
+- install/ppc64le: run grub2-mkconfig regardless of petitboot version
+- Resolves: #RHEL-45161
+
+* Mon Jul 1 2024 Leo Sandoval <lsandova@redhat.com> - 2.06-83
+- grub-mkconfig.in: turn off executable owner bit
+- Resolves: RHEL-45870
+
+* Thu Jun 27 2024 Nicolas Frayer <nfrayer@redhat.com> - 2.06-82
+- mkconfig/install: Remove BLS handling for XEN
+- Resolves: #RHEL-4386
+
+* Tue Jun 25 2024 Marta Lewandowska <mlewando@redhat.com> - 2.06-81
+- grub.cfg: Fix an issue when doing a major version upgrade
+- Resolves: #RHEL-45008
+
+* Tue May 28 2024 Nicolas Frayer <nfrayer@redhat.com> - 2.06-80
+- Added more code for the previous CVE fix
+- Related: #RHEL-36249
+- Related: #RHEL-36186
+
+* Tue May 28 2024 Nicolas Frayer <nfrayer@redhat.com> - 2.06-79
+- cmd/search: Rework of CVE-2023-4001 fix
+- Resolves: #RHEL-36249
+- Resolves: #RHEL-36186
+
+* Thu Feb 22 2024 Nicolas Frayer <nfrayer@redhat.com> - 2.06-78
+- util: grub-install on EFI if forced
+- Resolves: #RHEL-20443
 
 * Thu Feb 22 2024 Nicolas Frayer <nfrayer@redhat.com> - 2.06-77
 - kern/dl: grub_dl_set_mem_attrs()/grub_dl_load_segments() fixes
