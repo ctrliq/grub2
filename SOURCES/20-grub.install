@@ -90,13 +90,10 @@ case "$COMMAND" in
             [[ -d "$BLS_DIR" ]] || mkdir -m 0700 -p "$BLS_DIR"
             BLS_ID="${MACHINE_ID}-${KERNEL_VERSION}"
             BLS_TARGET="${BLS_DIR}/${BLS_ID}.conf"
-            if [[ -f "${KERNEL_DIR}/bls.conf" ]]; then
-                cp -aT "${KERNEL_DIR}/bls.conf" "${BLS_TARGET}" || exit $?
-            else
-                mkbls "${KERNEL_VERSION}" \
-                    "$(date -u +%Y%m%d%H%M%S -d "$(stat -c '%y' "${KERNEL_DIR}")")" \
-                    >"${BLS_TARGET}"
-            fi
+            mkbls "${KERNEL_VERSION}" \
+                "$(date -u +%Y%m%d%H%M%S -d "$(stat -c '%y' "${KERNEL_DIR}")")" \
+                >"${BLS_TARGET}"
+            command -v restorecon &>/dev/null && restorecon -R "${BLS_TARGET}"
 
             LINUX="$(grep '^linux[ \t]' "${BLS_TARGET}" | sed -e 's,^linux[ \t]*,,')"
             INITRD="$(grep '^initrd[ \t]' "${BLS_TARGET}" | sed -e 's,^initrd[ \t]*,,')"
@@ -109,7 +106,11 @@ case "$COMMAND" in
                 sed -i -e "s,^initrd.*,initrd ${BOOTPREFIX}${INITRD},g" "${BLS_TARGET}"
             fi
 
-            if [[ "$KERNEL_VERSION" == *\+* ]] && [ "x$GRUB_DEFAULT_TO_DEBUG" != "xtrue" ]; then
+            if ( [[ "$KERNEL_VERSION" != *${GRUB_DEFAULT_KERNEL_TYPE}* ]] && \
+                     [ "x$GRUB_NON_STANDARD_KERNEL" == "xtrue" ] ) || \
+                   ( echo "$KERNEL_VERSION" | grep -E -q "64k|auto|rt|uki" && \
+                    	[ "x$GRUB_NON_STANDARD_KERNEL" != "xtrue" ] ) || \
+                   ( [[ "$KERNEL_VERSION" == *debug* ]] && [ "x$GRUB_DEFAULT_TO_DEBUG" != "xtrue" ] ); then
                 GRUB_UPDATE_DEFAULT_KERNEL=false
             fi
 
@@ -154,8 +155,9 @@ case "$COMMAND" in
         if [[ "x${GRUB_ENABLE_BLSCFG}" = "xtrue" ]] || [[ ! -f /sbin/new-kernel-pkg ]]; then
             ARCH="$(uname -m)"
             BLS_TARGET="${BLS_DIR}/${MACHINE_ID}-${KERNEL_VERSION}.conf"
+            BLS_FAKE_TARGET="${BLS_DIR}/ffffffffffffffffffffffffffffffff-${KERNEL_VERSION}.conf"
             BLS_DEBUG="$(echo ${BLS_TARGET} | sed -e "s/${KERNEL_VERSION}/${KERNEL_VERSION}~debug/")"
-            rm -f "${BLS_TARGET}" "${BLS_DEBUG}"
+            rm -f "${BLS_TARGET}" "${BLS_DEBUG}" "${BLS_FAKE_TARGET}"
 
             for i in vmlinuz System.map config zImage.stub dtb; do
                 rm -rf "/boot/${i}-${KERNEL_VERSION}"
