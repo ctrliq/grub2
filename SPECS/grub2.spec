@@ -7,7 +7,7 @@
 Name:                 grub2
 Epoch:                1
 Version:              2.02
-Release:              150%{?dist}.ciq.0.1
+Release:              167%{?dist}.ciq.0.1.3
 Summary:              Bootloader with support for Linux, Multiboot and more
 Group:                System Environment/Base
 License:              GPLv3+
@@ -31,8 +31,12 @@ Source12:             99-grub-mkconfig.install
 #Source17:	redhatsecureboot601.cer
 #Source18:	redhatsecureboot701.cer
 Source19:             sbat.csv.in
-Source1100: ciq.macros
-BuildRequires:        system-sb-certs
+Source1101:           ciq_sbsign.macros
+Source1102:  ciq_sb_grub2.crt
+Source1103:  ciq_sb_ca.der
+Source1104:  ciq_sb_grub2_aarch64.crt
+
+%include %{SOURCE1101}
 
 
 
@@ -55,6 +59,9 @@ BuildRequires:        system-sb-certs
 
 # generate with do-rebase
 %include %{SOURCE2}
+
+# Include ciq_sbsign macros again - they also override the secureboot cert and key values
+%include %{SOURCE1101}
 
 BuildRequires:        gcc efi-srpm-macros
 BuildRequires:        flex bison binutils python3-devel
@@ -165,7 +172,7 @@ This subpackage provides tools for support of all platforms.
 %endif
 
 %prep 
-%global upstreamDist .el8_8
+%global upstreamDist .el8_10
  
 #Define RHEL release (stripped out ciq/rocky dist info) and Rocky release (stripped out CIQ info) respectively.  Needed for SBAT entries for RHEL and RESF: 
 %global sbatrhelrelease  %(echo '%{release}' | sed 's,%{dist},%{upstreamDist},' | sed 's,\.rocky\..*$,,' | sed 's,\.ciq\..*$,,') 
@@ -317,7 +324,23 @@ if [ "$1" = 1 ]; then
 fi
 
 if [ "$1" = 2 ]; then
-	/sbin/grub2-switch-to-blscfg --backup-suffix=.rpmsave &>/dev/null || :
+    if [ -f /etc/default/grub ]; then
+	! grep -q '^GRUB_ENABLE_BLSCFG=.*' /etc/default/grub && \
+	    /sbin/grub2-switch-to-blscfg --backup-suffix=.rpmsave &>/dev/null || :
+    fi
+fi
+
+%posttrans common
+set -eu
+
+GRUB_HOME=/boot/%{name}
+
+if test  -f ${GRUB_HOME}/grub.cfg; then
+    # make sure GRUB_HOME/grub.cfg has 600 permissions
+    GRUB_CFG_MODE=$(stat --format="%a" ${GRUB_HOME}/grub.cfg)
+    if ! test "${GRUB_CFG_MODE}" = "600"; then
+        chmod 0600 ${GRUB_HOME}/grub.cfg
+    fi
 fi
 
 %triggerun -- grub2 < 1:1.99-4
@@ -480,10 +503,6 @@ fi
 %endif
 %endif
 
-
-# CIQ-specific EFI packages for secure boot:
-%include %{SOURCE1100}
-
 %files tools-extra
 %{_sbindir}/%{name}-sparc64-setup
 %{_sbindir}/%{name}-ofpathname
@@ -524,16 +543,102 @@ fi
 %endif
 
 %changelog
-* Tue Jan 30 2024 Skip Grube <sgrube@ciq.com> - 2.02-150
-- Porting Rocky 8 secureboot grub2 to CIQ build
+* Thu Apr 03 2026 Linux Engineering <le-team@ciq.com> - 2.02-167.3
+- Bump SBAT level grub,3 -> grub,5 to reflect CVE patches already present
+- Port patches 0678-0683 from grub2-rl8 (Rocky Linux 8):
+  - Strip correctly BLS files with .conf extension
+  - disk: rename grub_disk_get_size() to grub_disk_native_sectors()
+  - fs: fix block lists not being able to address end of disk
+  - osdep/linux/hostdisk: modify sector size via sysfs
+  - cryptodisk: fix incorrect calculation of start sector
+  - gettext: unregister gettext command on module unload (CVE-2025-61662)
 
-* Fri Nov 17 2023 Release Engineering <releng@rockylinux.org> - 2.02-150.rocky.0.1
+* Tue Aug 19 2025 Linux Engineering <le-team@ciq.com> - 2.02-167.2
+- Porting Rocky 8 secureboot grub2 to CIQ build and sign
+- Update: fixed ciq-shim requirement for non x86 architectures (SECO-83)
+- Update: added aarch64 certs
+
+* Tue Jun 03 2025 Release Engineering <releng@rockylinux.org> - 2.02-167.rocky.0.1
 - Removing redhat old cert sources entries (Sherif Nagy)
 - Preserving rhel8 sbat entry based on shim-review feedback ticket no. 194
-- Porting to 8.9
+- Porting to 8.10
 - Cleaning up grup.macro extra signing certs and updating rocky test CA and CERT
 - Cleaning up grup.macro extra signing certs
 - Use rocky-sb-certs for secure boot signing
+
+* Thu Apr 24 2025 Leo Sandoval <lsandova@redhat.com> - 2.02-167
+- 99-grub-mkconfig.install: fix condition allowing correct checks if GRUB_ENABLE_BLSCFG is not present
+- Resolves: #RHEL-80168
+
+* Wed Apr 23 2025 Leo Sandoval <lsandova@redhat.com> - 2.02-166
+- Don't try to switch to a BLS config if GRUB_ENABLE_BLSCFG is already set
+- Resolves: #RHEL-86913
+
+* Thu Apr 17 2025 Nicolas Frayer <nfrayer@redhat.com> - 2.02-165
+- fs/ext2: Rework of OOB read patch
+- Resolves: #RHEL-86553
+
+* Fri Apr 4 2025 Leo Sandoval <lsandova@redhat.com> - 2.02-164
+- Bump NVR to sign the build
+- Resolves: #RHEL-85627
+
+* Thu Apr 3 2025 Nicolas Frayer <nfrayer@redhat.com> - 2.02-163
+- fs/xfs: Synced xfs to latest
+- Resolves: #RHEL-85627
+
+* Tue Mar 25 2025 Nicolas Frayer <nfrayer@redhat.com> - 2.02-162
+- ieee1275/ofnet: Fix grub_malloc() removed after added safe
+- Remove 'fs/ntfs: Implement attribute verification' patch
+- Related: #RHEL-79837
+
+* Tue Feb 18 2025 Leo Sandoval <lsandova@redhat.com> - 2.02-161
+- Add Several CVE fixes
+- Resolves CVE-2024-45775 CVE-2025-0624
+- Resolves: #RHEL-75735
+- Resolves: #RHEL-79837
+
+* Wed Nov 13 2024 Leo Sandoval <lsandova@redhat.com> - 2.02-160
+- Remove BLS fake config in case of kernel removal
+- Resolves: #RHEL-4316
+
+* Tue Nov 12 2024 Leo Sandoval <lsandova@redhat.com> - 2.02-159
+- Fix default behavior when GRUB_ENABLE_BLSCFG is not present
+- Resolves: #RHEL-4319
+
+* Thu Sep 19 2024 Leo Sandoval <lsandova@redhat.com> - 2.02-158
+- grub-mkconfig.in: turn off executable owner bit
+- Resolves: #RHEL-58835
+
+* Wed Aug 14 2024 Leo Sandoval <lsandova@redhat.com> - 2.02-157
+- 20-grub-install: fix SELinux security type context for BLS
+- Resolves: #RHEL-4395
+
+* Tue Feb 20 2024 Nicolas Frayer <nfrayer@redhat.com> - 2.02-156
+- fs/ntfs: OOB write fix
+- (CVE-2023-4692)
+- Resolves: #RHEL-11566
+
+* Thu Feb 8 2024 Nicolas Frayer <nfrayer@redhat.com> - 2.06-155
+- grub-set-bootflag: Fix for CVE-2024-1048
+- (CVE-2024-1048)
+- Resolves: #RHEL-20746
+
+* Mon Nov 27 2023 Nicolas Frayer <nfrayer@redhat.com> - 2.02-154
+- Missing install script for previous commit
+- Related: #RHEL-4343
+
+* Fri Nov 24 2023 Nicolas Frayer <nfrayer@redhat.com> - 2.02-153
+- util: Enable default kernel for updates
+- Resolves: #RHEL-4343
+
+* Fri Oct 20 2023 Nicolas Frayer <nfrayer@redhat.com> - 2.02-152
+- kern/ieee1275/init: ppc64: Restrict high memory in presence
+  of fadump
+- Resolves: #RHEL-14283
+
+* Mon Aug 28 2023 Nicolas Frayer <nfrayer@redhat.com> - 2.02-151
+- util: Regenerate kernelopts if missing on ppc
+- Resolves: #2051889
 
 * Fri Jun 16 2023 Nicolas Frayer <nfrayer@redhat.com> - 2.02-150
 - kern/ieee1275/init: sync vec5 patchset with upstream

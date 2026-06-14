@@ -286,6 +286,10 @@ Requires:	%{name}-tools-minimal >= %{evr}				\
 Requires:	%{name}-tools-extra = %{evr}				\
 Requires:	%{name}-tools = %{evr}					\
 Provides:	%{name}-efi = %{evr}					\
+# Add ciq-shim requirement, ONLY on ciq secureboot supported arches    \
+%ifarch x86_64 aarch64 \
+Requires: ciq-shim >= 15.8          \
+%endif   \
 %{?legacy_provides:Provides:	%{name} = %{evr}}			\
 %{-o:Obsoletes:	%{name}-efi < %{evr}}					\
 									\
@@ -587,14 +591,15 @@ install -d -m 0700 ${RPM_BUILD_ROOT}%{_sysconfdir}/sysconfig	\
 touch ${RPM_BUILD_ROOT}%{_sysconfdir}/default/grub		\
 ln -sf ../default/grub						\\\
 	${RPM_BUILD_ROOT}%{_sysconfdir}/sysconfig/grub		\
-touch ${RPM_BUILD_ROOT}/boot/%{name}/grub.cfg			\
+touch grub.cfg							\
+install -m 0600 grub.cfg ${RPM_BUILD_ROOT}/boot/%{name}/	\
 %{nil}
 
 %define define_legacy_variant_files()				\
 %{expand:%%files %{1}}						\
 %defattr(-,root,root,-)						\
 %config(noreplace) %{_sysconfdir}/%{name}.cfg			\
-%ghost %config(noreplace) %attr(0700,root,root)/boot/%{name}/grub.cfg	\
+%ghost %config(noreplace) %attr(0600,root,root)/boot/%{name}/grub.cfg	\
 %dir %attr(0700,root,root)/boot/loader/entries			\
 %ifarch ppc64le						\
 %dir %{_libdir}/grub/%{2}/					\
