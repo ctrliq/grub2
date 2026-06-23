@@ -274,6 +274,8 @@ Requires:	%{name}-common = %{evr}					\
 Requires:	%{name}-tools-minimal >= %{evr}				\
 Requires:	%{name}-tools = %{evr}					\
 Provides:	%{name}-efi = %{evr}					\
+Provides:	ciq-grub2 = %{evr}					\
+Provides:	ciq-grub2-%{1} = %{evr}				\
 Requires:	ciq-shim >= 15.8						\
 %{?legacy_provides:Provides:	%{name} = %{evr}}			\
 %{-o:Obsoletes:	%{name}-efi < %{evr}}					\
