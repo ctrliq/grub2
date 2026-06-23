@@ -289,6 +289,8 @@ Provides:	%{name}-efi = %{evr}					\
 # Add ciq-shim requirement, ONLY on ciq secureboot supported arches    \
 %ifarch x86_64 aarch64 \
 Requires: ciq-shim >= 15.8          \
+Provides:	ciq-grub2 = %{evr}					\
+Provides:	ciq-grub2-%{1} = %{evr}				\
 %endif   \
 %{?legacy_provides:Provides:	%{name} = %{evr}}			\
 %{-o:Obsoletes:	%{name}-efi < %{evr}}					\
