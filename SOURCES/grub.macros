@@ -230,6 +230,8 @@ Requires:	%{name}-tools = %{evr}					\
 # Add ciq-shim requirement, ONLY on ciq secureboot supported arches \
 %ifarch x86_64  \
 Requires: ciq-shim >= 15.8          \
+Provides:	ciq-grub2 = %{evr}					\
+Provides:	ciq-grub2-%{1} = %{evr}				\
 %endif   \
 %{-p:Provides:	%{name}-efi = %{evr}}					\
 %{-p:Obsoletes:	%{name}-efi <= %{flagday}}				\
