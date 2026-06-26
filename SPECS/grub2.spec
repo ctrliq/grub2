@@ -14,9 +14,9 @@
 %global gnulibversion 9f48fb992a3d7e96610c4ce8be969cff2d61a01b
 
 Name:                 grub2
-Epoch:                1
+Epoch:                3
 Version:              2.06
-Release:              114%{?dist}.ciq.0.1
+Release:              114%{?dist}.ciq.0.2
 Summary:              Bootloader with support for Linux, Multiboot and more
 License:              GPLv3+
 URL:                  http://www.gnu.org/software/grub/
@@ -573,6 +573,12 @@ fi
 %endif
 
 %changelog
+* Wed Jun 24 2026 Jason Rodriguez <jrodriguez@ciq.com> - 2.06-114.ciq.0.2
+- Enable with_legacy_modules on x86_64 so grub2-pc-modules is built and packaged.
+  Fixes grub2-pc being uninstallable/un-upgradeable (it requires grub2-pc-modules,
+  which was excluded on x86_64), which caused "removing the following protected
+  packages: grub2-pc" on any box with the stock grub2-pc installed.
+
 * Thu Feb 12 2026 Linux Engineering <le-team@ciq.com> - 2.06-114
 - Porting Rocky 9 secureboot grub2 to CIQ build and sign
 
