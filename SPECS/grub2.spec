@@ -5,9 +5,9 @@
 %global _configure_gnuconfig_hack 0
 
 Name:                 grub2
-Epoch:                1
+Epoch:                5
 Version:              2.02
-Release:              167%{?dist}.ciq.0.1.3
+Release:              167%{?dist}.ciq.0.1.4
 Summary:              Bootloader with support for Linux, Multiboot and more
 Group:                System Environment/Base
 License:              GPLv3+
@@ -543,6 +543,9 @@ fi
 %endif
 
 %changelog
+* Fri Jun 26 2026 Jason Rodriguez <jrodriguez@ciq.com> - 2.02-167.ciq.0.1.4
+- Epoch 1 -> 5 so CIQ grub2 outranks Rocky's on a plain dnf upgrade (pairs with shim Epoch 5 + kernel Requires ciq-shim).
+
 * Thu Apr 03 2026 Linux Engineering <le-team@ciq.com> - 2.02-167.3
 - Bump SBAT level grub,3 -> grub,5 to reflect CVE patches already present
 - Port patches 0678-0683 from grub2-rl8 (Rocky Linux 8):
