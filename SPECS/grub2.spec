@@ -574,6 +574,7 @@ fi
 
 %changelog
 * Wed Jun 24 2026 Jason Rodriguez <jrodriguez@ciq.com> - 2.06-114.ciq.0.2
+- Epoch 1 -> 3 so CIQ grub2 outranks Rocky's on a plain dnf upgrade (pairs with shim Epoch 3 + kernel Requires ciq-shim).
 - Enable with_legacy_modules on x86_64 so grub2-pc-modules is built and packaged.
   Fixes grub2-pc being uninstallable/un-upgradeable (it requires grub2-pc-modules,
   which was excluded on x86_64), which caused "removing the following protected
