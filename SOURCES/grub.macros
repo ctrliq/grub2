@@ -222,7 +222,11 @@
 
 %ifarch x86_64
 %global with_efi_common 1
-%global with_legacy_modules 0
+# Build grub2-pc-modules on x86_64 (upstream behavior). Without it, grub2-pc
+# requires a sibling that is never built, so it is uninstallable and cannot be
+# upgraded in lockstep with the rest of the stack (dnf "protected package"
+# removal error on any box that already has the stock grub2-pc).
+%global with_legacy_modules 1
 %global with_legacy_common 0
 %else
 %global with_efi_common 0
