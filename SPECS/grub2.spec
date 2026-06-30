@@ -545,6 +545,9 @@ fi
 %changelog
 * Fri Jun 26 2026 Jason Rodriguez <jrodriguez@ciq.com> - 2.02-167.ciq.0.1.4
 - Epoch 1 -> 5 so CIQ grub2 outranks Rocky's on a plain dnf upgrade (pairs with shim Epoch 5 + kernel Requires ciq-shim).
+- Enable with_legacy_modules on x86_64 so grub2-pc-modules is built; without it
+  grub2-pc (which Requires grub2-pc-modules) is uninstallable and dnf upgrade
+  fails with "removing protected packages: grub2-pc" on stock-grub2-pc boxes.
 
 * Thu Apr 03 2026 Linux Engineering <le-team@ciq.com> - 2.02-167.3
 - Bump SBAT level grub,3 -> grub,5 to reflect CVE patches already present
