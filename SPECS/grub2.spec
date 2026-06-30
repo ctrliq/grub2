@@ -14,7 +14,7 @@
 %global gnulibversion 9f48fb992a3d7e96610c4ce8be969cff2d61a01b
 
 Name:                 grub2
-Epoch:                3
+Epoch:                5
 Version:              2.06
 Release:              114%{?dist}.ciq.0.2
 Summary:              Bootloader with support for Linux, Multiboot and more
@@ -574,7 +574,7 @@ fi
 
 %changelog
 * Wed Jun 24 2026 Jason Rodriguez <jrodriguez@ciq.com> - 2.06-114.ciq.0.2
-- Epoch 1 -> 3 so CIQ grub2 outranks Rocky's on a plain dnf upgrade (pairs with shim Epoch 3 + kernel Requires ciq-shim).
+- Epoch 1 -> 5 so CIQ grub2 outranks Rocky's on a plain dnf upgrade (pairs with shim Epoch 5 + kernel Requires ciq-shim).
 - Enable with_legacy_modules on x86_64 so grub2-pc-modules is built and packaged.
   Fixes grub2-pc being uninstallable/un-upgradeable (it requires grub2-pc-modules,
   which was excluded on x86_64), which caused "removing the following protected
