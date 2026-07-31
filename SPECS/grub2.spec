@@ -7,7 +7,7 @@
 Name:                 grub2
 Epoch:                5
 Version:              2.02
-Release:              167%{?dist}.ciq.0.1.5
+Release:              167.1.5%{?dist}
 Summary:              Bootloader with support for Linux, Multiboot and more
 Group:                System Environment/Base
 License:              GPLv3+
@@ -543,7 +543,7 @@ fi
 %endif
 
 %changelog
-* Fri Jul 31 2026 Jason Rodriguez <jrodriguez@ciq.com> - 2.02-167.ciq.0.1.5
+* Fri Jul 31 2026 Jason Rodriguez <jrodriguez@ciq.com> - 2.02-167.1.5
 - Release bump only: .0.1.4 was already published without the with_legacy_modules
   fix below despite the changelog entry claiming it (spec was edited in place
   post-publish instead of getting a new release). Republishing under the same
