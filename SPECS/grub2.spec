@@ -16,7 +16,7 @@
 Name:                 grub2
 Epoch:                5
 Version:              2.06
-Release:              114%{?dist}.ciq.0.2
+Release:              114.0.3%{?dist}
 Summary:              Bootloader with support for Linux, Multiboot and more
 License:              GPLv3+
 URL:                  http://www.gnu.org/software/grub/
@@ -573,6 +573,14 @@ fi
 %endif
 
 %changelog
+* Fri Jul 31 2026 Jason Rodriguez <jrodriguez@ciq.com> - 2.06-114.0.3
+- Release bump + format cleanup: %{?dist} moved to end of Release, .ciq marker
+  dropped (per releng review of the el8 fix). Needed for el9.2 specifically:
+  the rolling buildroot links a newer libdevmapper than Rocky 9.2 itself ships
+  (grub2-tools-minimal ends up requiring symbol DM_1_02_197, which real 9.2
+  boxes don't have), so el9.2 needs its own build against a pinned 9.2 vault
+  -- this bump gives that rebuild a fresh, unambiguous NVR to publish under.
+
 * Wed Jun 24 2026 Jason Rodriguez <jrodriguez@ciq.com> - 2.06-114.ciq.0.2
 - Epoch 1 -> 5 so CIQ grub2 outranks Rocky's on a plain dnf upgrade (pairs with shim Epoch 5 + kernel Requires ciq-shim).
 - Enable with_legacy_modules on x86_64 so grub2-pc-modules is built and packaged.
