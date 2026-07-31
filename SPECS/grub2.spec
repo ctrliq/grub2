@@ -7,7 +7,7 @@
 Name:                 grub2
 Epoch:                5
 Version:              2.02
-Release:              167%{?dist}.ciq.0.1.4
+Release:              167%{?dist}.ciq.0.1.5
 Summary:              Bootloader with support for Linux, Multiboot and more
 Group:                System Environment/Base
 License:              GPLv3+
@@ -543,6 +543,12 @@ fi
 %endif
 
 %changelog
+* Fri Jul 31 2026 Jason Rodriguez <jrodriguez@ciq.com> - 2.02-167.ciq.0.1.5
+- Release bump only: .0.1.4 was already published without the with_legacy_modules
+  fix below despite the changelog entry claiming it (spec was edited in place
+  post-publish instead of getting a new release). Republishing under the same
+  NVR isn't safe, so this rebuild carries no other changes.
+
 * Fri Jun 26 2026 Jason Rodriguez <jrodriguez@ciq.com> - 2.02-167.ciq.0.1.4
 - Epoch 1 -> 5 so CIQ grub2 outranks Rocky's on a plain dnf upgrade (pairs with shim Epoch 5 + kernel Requires ciq-shim).
 - Enable with_legacy_modules on x86_64 so grub2-pc-modules is built; without it
